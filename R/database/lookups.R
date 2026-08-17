@@ -1,5 +1,5 @@
 get_players_query <- function(team, series, season) {
-  glue("SELECT DISTINCT mp.player_id,
+  glue::glue("SELECT DISTINCT mp.player_id,
           p.name
           FROM [GA20260618].PlayerInnings mp
           JOIN [GA20260618].Matches m ON mp.match_id = m.match_id
@@ -15,7 +15,44 @@ get_players_query <- function(team, series, season) {
   )
 }
 
+get_min_season_year <- function(filters = NULL, conn = NULL) {
+  if (is_local_data()) {
+    return(local_get_min_season_year(filters))
+  }
+
+  if (!db_is_available(conn)) {
+    return(series_min_year(if (is.null(filters)) NULL else filters$series))
+  }
+
+  if (is.null(conn)) {
+    conn <- get_db_connection()
+  }
+
+  where_clause <- build_filter_clause(filters)
+
+  query <- glue::glue("
+    SELECT MIN(CAST(LEFT(season.name, 4) AS INT)) AS min_year
+    FROM [GA20260618].MatchPlayers mp
+    JOIN [GA20260618].Matches m ON mp.match_id = m.match_id
+    JOIN [GA20260618].Teams team ON mp.team_id = team.team_id
+    JOIN [GA20260618].Venues venue ON m.venue_id = venue.venue_id
+    JOIN [GA20260618].Series series ON m.series_id = series.series_id
+    JOIN [GA20260618].Seasons season ON m.season_id = season.season_id
+    {where_clause}
+  ")
+
+  min_year <- QueryDBFunction(con = conn, query = query)$min_year
+  if (length(min_year) == 0 || is.na(min_year[1])) {
+    return(series_min_year(if (is.null(filters)) NULL else filters$series))
+  }
+  as.integer(min_year[1])
+}
+
 get_formats <- function(filters = NULL, conn = NULL) {
+  if (is_local_data()) {
+    return(local_get_formats(filters))
+  }
+
   if (!db_is_available(conn)) {
     return(character())
   }
@@ -74,6 +111,10 @@ get_series <- function(filters = NULL, conn = NULL) {
 }
 
 get_venues <- function(filters = NULL, conn = NULL) {
+  if (is_local_data()) {
+    return(local_get_venues(filters))
+  }
+
   if (!db_is_available(conn)) {
     return(character())
   }
@@ -101,6 +142,10 @@ get_venues <- function(filters = NULL, conn = NULL) {
 }
 
 get_teams <- function(filters = NULL, conn = NULL) {
+  if (is_local_data()) {
+    return(local_get_teams(filters))
+  }
+
   if (!db_is_available(conn)) {
     return(character())
   }
@@ -127,6 +172,10 @@ get_teams <- function(filters = NULL, conn = NULL) {
 }
 
 get_players <- function(filters = NULL, conn = NULL) {
+  if (is_local_data()) {
+    return(local_get_players(filters))
+  }
+
   if (!db_is_available(conn)) {
     return(character())
   }

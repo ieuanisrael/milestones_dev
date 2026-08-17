@@ -23,14 +23,14 @@ get_player_milestone_summary <- function(
       choices$definition_id == definition$definition_id,
     ]
 
-    query_data <- build_query(
+    query_data <- execute_milestone_query(
       definition = definition,
       player_id = player_id,
       filters = filters
     )
 
     res <- tryCatch(
-      QueryDBFunction(con = con, query = query_data),
+      query_data,
       error = function(e) NULL
     ) 
 

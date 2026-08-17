@@ -1,6 +1,52 @@
 # Player dashboard UI and server logic.
 # This module presents milestone snapshots and progress tracking for the selected player.
 
+legend_swatch <- function(colour) {
+  tags$span(
+    style = paste0(
+      "display:inline-block;width:16px;height:16px;border-radius:3px;",
+      "margin-right:8px;vertical-align:middle;background:", colour, ";"
+    )
+  )
+}
+
+milestoneSnapshotLegend <- function() {
+  div(
+    class = "milestone-legend",
+    style = paste(
+      "background:#f8fafc;",
+      "border:1px solid #d9e2ec;",
+      "border-radius:8px;",
+      "padding:12px 16px;",
+      "margin:0 0 16px 0;"
+    ),
+    tags$p(
+      style = "margin:0 0 10px 0;",
+      "Each card is that player's progress toward the ",
+      tags$strong("next milestone"),
+      " in the selected series. Cards only appear for milestones the player has started."
+    ),
+    fluidRow(
+      column(
+        6,
+        legend_swatch("#198754"),
+        tags$span("Green — more than halfway to the next target")
+      ),
+      column(
+        6,
+        legend_swatch("#ffc107"),
+        tags$span("Yellow — halfway or less to the next target")
+      )
+    ),
+    tags$ul(
+      style = "margin:12px 0 0 18px;",
+      tags$li(tags$strong("Current"), " — career total so far (runs, wickets, appearances, and so on)"),
+      tags$li(tags$strong("Next Target"), " — the next threshold, such as 1,000 runs or 50 wickets"),
+      tags$li(tags$strong("Status"), " — still in progress until that target is reached")
+    )
+  )
+}
+
 playerDashboardUI <- function(id) {
   ns <- NS(id)
 
@@ -19,14 +65,19 @@ playerDashboardUI <- function(id) {
 
       hr(),
 
-      h4("Milestone Snapshot"),
-      uiOutput(ns("milestone_cards")) %>%
-        withSpinner(proxy.height = "400px", color.background = "gray"),
-
-      hr(),
-
-      h4("Progress Tracker"),
-      DT::DTOutput(ns("progress_table")) %>% withSpinner()
+      navset_tab(
+        id = ns("player_views"),
+        nav_panel(
+          "Milestone Snapshot",
+          milestoneSnapshotLegend(),
+          uiOutput(ns("milestone_cards")) %>%
+            withSpinner(proxy.height = "400px", color.background = "gray")
+        ),
+        nav_panel(
+          "Progress Tracker",
+          DT::DTOutput(ns("progress_table")) %>% withSpinner()
+        )
+      )
     )
   )
 }
@@ -150,6 +201,7 @@ playerDashboardServer <- function(id) {
       },
       options = list(
         pageLength = 8,
+        scrollX = TRUE,
         columnDefs = list(
           list(className = 'dt-left', targets = '_all')
         )

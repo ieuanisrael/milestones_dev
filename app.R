@@ -6,18 +6,24 @@ library(bslib)
 library(shinycssloaders)
 library(shinyWidgets)
 library(tidyverse)
+library(glue)
 library(DBI)
 library(odbc)
 
 # Configuration and lookup definitions
 source("./R/config/milestone_def.R")
 source("./R/config/select_choices.R")
-source("./R/config/constants.R")
+if (file.exists("./R/config/constants.R")) {
+  source("./R/config/constants.R")
+} else {
+  source("./R/config/local_constants.R")
+}
 
 # Database helpers and query utilities
 source("./R/database/connection.R")
 source("./R/database/filters.R")
 source("./R/database/lookups.R")
+source("./R/database/local_data.R")
 
 # Milestone computation helpers
 source("./R/milestone_functions/leaderboard.R")
@@ -52,5 +58,5 @@ server <- function(input, output, session) {
 
 options(shiny.launch.browser = TRUE)
 
-shinyApp(ui, server,options = list(port = 5432))
+shinyApp(ui, server)
 

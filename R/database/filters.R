@@ -84,3 +84,26 @@ build_filter_clause <- function(filters, player_id = NULL, definition = NULL) {
   paste("WHERE", paste(clauses, collapse = " AND "))
 }
 
+series_min_year <- function(series) {
+  if (identical(series, "Aus Domestic T20 M")) {
+    2011L
+  } else if (identical(series, "Aus Domestic T20 F")) {
+    2015L
+  } else {
+    NA_integer_
+  }
+}
+
+series_date_range_label <- function(series, min_year = NULL) {
+  year <- min_year
+  if (is.null(year) || length(year) == 0 || is.na(year)) {
+    year <- series_min_year(series)
+  }
+
+  if (!is.null(year) && length(year) == 1 && !is.na(year)) {
+    paste0("Min year: ", year)
+  } else {
+    "Min year: all available seasons"
+  }
+}
+

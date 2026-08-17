@@ -34,6 +34,22 @@ single_performance_milestones <- results %>%
 # Helper function
 # -------------------------------
 
+last_match_performance_label <- function(x) {
+  display_name <- as.character(x$display_name)
+
+  if (grepl("Batting Tiers", display_name)) {
+    tier <- suppressWarnings(as.integer(as.numeric(sub(".*-\\s*", "", display_name))))
+    if (!is.na(tier) && identical(tier, 100L)) {
+      return("a century")
+    }
+    if (!is.na(tier)) {
+      return(paste("a", tier))
+    }
+  }
+
+  as.character(x$display_name_ui)
+}
+
 create_cards <- function(data, text_fn, colour) {
   
   if (nrow(data) == 0) {
@@ -204,12 +220,12 @@ email_html <- tagList(
       class = "hero", 
       tags$div(
         class = "hero-title",
-        glue("NSW Blues Men's Milestone Report")
+        glue("NSW Blues Men's {series} Milestone Report")
       ),
       
       tags$div(
         class = "hero-subtitle",
-        paste(series, "| Performance Analysis Update |", Sys.Date())
+        paste("Performance Analysis Update |", Sys.Date())
       )
     ),
     
@@ -245,6 +261,21 @@ email_html <- tagList(
               class = "summary-box",
               div(
                 class = "summary-number",
+                nrow(single_performance_milestones)
+              ),
+              div(
+                class = "summary-label",
+                "Last Match"
+              )
+            )
+          ),
+          
+          tags$td(
+            width = "25%",
+            div(
+              class = "summary-box",
+              div(
+                class = "summary-number",
                 nrow(milestone_threshold)
               ),
               div(
@@ -267,21 +298,6 @@ email_html <- tagList(
                 "Top 10 Watch"
               )
             )
-          ),
-          
-          tags$td(
-            width = "25%",
-            div(
-              class = "summary-box",
-              div(
-                class = "summary-number",
-                nrow(single_performance_milestones)
-              ),
-              div(
-                class = "summary-label",
-                "Single Match"
-              )
-            )
           )
         )
       )
@@ -294,7 +310,7 @@ email_html <- tagList(
       
       div(
         class = "section-title",
-        "✅ Milestones Achieved"
+        "Milestones Achieved"
       ),
       
       create_cards(
@@ -312,6 +328,31 @@ email_html <- tagList(
       ),
     ),
     
+    # LAST MATCH SECTION ----------------------
+    
+    div(
+      class = "section",
+      
+      div(
+        class = "section-title",
+        "Last Match Performances"
+      ),
+      
+      create_cards(
+        single_performance_milestones,
+        function(x) {
+          glue("
+          <strong>{x$player}</strong> achieved
+          <strong>{last_match_performance_label(x)}</strong>
+          on {as_date(x$last_match_date)}.
+          <br>
+          Career Total: <strong>{x$current_value}</strong>
+        ")
+        },
+        "#9c27b0"
+      ),
+    ),
+    
     # APPROACHING SECTION ---------------------
     
     div(
@@ -319,7 +360,7 @@ email_html <- tagList(
       
       div(
         class = "section-title",
-        "🎯 Milestones Approaching"
+        "Milestones Approaching"
       ),
       
       create_cards(
@@ -344,7 +385,7 @@ email_html <- tagList(
       
       div(
         class = "section-title",
-        "🏆 Top 10 Watch"
+        "Top 10 Watch"
       ),
       
       create_cards(
@@ -361,31 +402,6 @@ email_html <- tagList(
         "#0078D4"
       ),
       
-    ),
-    
-    # PERFORMANCE SECTION ---------------------
-    
-    div(
-      class = "section",
-      
-      div(
-        class = "section-title",
-        "⭐ Single Match Performances"
-      ),
-      
-      create_cards(
-        single_performance_milestones,
-        function(x) {
-          glue("
-          <strong>{x$player}</strong> achieved
-          <strong>{x$display_name}</strong>
-          on {as_date(x$last_match_date)}.
-          <br>
-          Career Total: <strong>{x$current_value}</strong>
-        ")
-        },
-        "#9c27b0"
-      ),
     ),
     
     div(

@@ -5,11 +5,15 @@ build_tier_case <- function(
     max_value = 500
 ){
   
-  tiers <- seq(
-    first_value,
-    max_value,
-    by = multiple
-  )
+  if (is.na(multiple) || multiple == 0) {
+    tiers <- first_value
+  } else {
+    tiers <- seq(
+      first_value,
+      max_value,
+      by = multiple
+    )
+  }
   
   case_lines <- purrr::map_chr(
     rev(tiers),

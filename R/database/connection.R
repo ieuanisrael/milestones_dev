@@ -1,8 +1,20 @@
 # Database connection helpers for the milestone application.
 # These functions centralize the ODBC connection lifecycle and query execution.
 
+sample_data_path <- function() {
+  Sys.getenv("MILESTONES_SAMPLE_DB", unset = file.path("data", "sample", "tables.rds"))
+}
+
+is_local_data <- function() {
+  flag <- Sys.getenv("MILESTONES_USE_SAMPLE", unset = NA_character_)
+  if (!is.na(flag) && nzchar(flag)) {
+    return(tolower(flag) %in% c("1", "true", "yes"))
+  }
+  file.exists(sample_data_path())
+}
+
 QueryDBFunction <- function(con, query, query_param = NULL) {
-  if (is.null(con) || !DBI::dbIsValid(con)) {
+  if (is.null(con) || inherits(con, "local_sample_connection") || !DBI::dbIsValid(con)) {
     return(tibble::tibble())
   }
 
@@ -18,6 +30,11 @@ QueryDBFunction <- function(con, query, query_param = NULL) {
 }
 
 get_db_connection <- function(force_reconnect = FALSE) {
+  if (is_local_data()) {
+    con <<- structure(list(path = sample_data_path()), class = "local_sample_connection")
+    return(con)
+  }
+
   if (
     force_reconnect ||
       !exists("con", inherits = FALSE) ||
@@ -32,6 +49,10 @@ get_db_connection <- function(force_reconnect = FALSE) {
 }
 
 db_is_available <- function(conn = NULL) {
+  if (is_local_data()) {
+    return(TRUE)
+  }
+
   if (is.null(conn)) {
     conn <- get_db_connection()
   }
@@ -40,6 +61,11 @@ db_is_available <- function(conn = NULL) {
 }
 
 safe_db_connect <- function() {
+  if (is_local_data()) {
+    message("Using local sample data: ", sample_data_path())
+    return(structure(list(path = sample_data_path()), class = "local_sample_connection"))
+  }
+
   tryCatch(
     {
       DBI::dbConnect(

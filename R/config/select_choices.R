@@ -12,11 +12,15 @@ select_choices <- milestones %>%
       )
     ) {
       
-      tiers <- seq(
-        row$first_value,
-        row$max_value,
-        by = row$multiple
-      )
+      if (is.na(row$multiple) || row$multiple == 0) {
+        tiers <- row$first_value
+      } else {
+        tiers <- seq(
+          row$first_value,
+          row$max_value,
+          by = row$multiple
+        )
+      }
       
       
       tibble(
