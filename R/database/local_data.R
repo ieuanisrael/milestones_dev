@@ -30,7 +30,13 @@ local_value <- function(df, value_column) {
   }
 }
 
-local_apply_filters <- function(df, filters = NULL, player_id = NULL, definition = NULL) {
+local_apply_filters <- function(
+  df,
+  filters = NULL,
+  player_id = NULL,
+  definition = NULL,
+  include_tier_cutoff = TRUE
+) {
   df <- df[df$match_count == 1, , drop = FALSE]
 
   if (!is.null(filters) && has_filter_value(filters$format)) {
@@ -60,7 +66,11 @@ local_apply_filters <- function(df, filters = NULL, player_id = NULL, definition
     df <- df[as.character(df$player_id) == as.character(player_id), , drop = FALSE]
   }
 
-  if (!is.null(definition) && definition$query_strategy %in% c("tiered_innings", "tiered_match")) {
+  if (
+    include_tier_cutoff &&
+      !is.null(definition) &&
+      definition$query_strategy %in% c("tiered_innings", "tiered_match")
+  ) {
     vals <- local_value(df, definition$value_column)
     df <- df[vals >= definition$first_value, , drop = FALSE]
   }
@@ -125,12 +135,23 @@ local_step_progress <- function(value, first_value, multiple) {
 }
 
 local_milestone_query <- function(definition, player_id = NULL, filters = NULL) {
-  df <- local_apply_filters(
+  career_df <- local_apply_filters(
     sample_innings(),
     filters = filters,
     player_id = player_id,
-    definition = definition
+    definition = definition,
+    include_tier_cutoff = FALSE
   )
+
+  match_counts <- career_df %>%
+    dplyr::group_by(.data$player_id) %>%
+    dplyr::summarise(n_matches = dplyr::n_distinct(.data$match_id), .groups = "drop")
+
+  df <- career_df
+  if (definition$query_strategy %in% c("tiered_innings", "tiered_match")) {
+    vals <- local_value(df, definition$value_column)
+    df <- df[vals >= definition$first_value, , drop = FALSE]
+  }
 
   if (nrow(df) == 0) {
     return(tibble::tibble())
@@ -138,24 +159,32 @@ local_milestone_query <- function(definition, player_id = NULL, filters = NULL) 
 
   df$stat_column <- local_value(df, definition$value_column)
 
+  attach_match_rate <- function(tbl) {
+    tbl %>%
+      dplyr::left_join(match_counts, by = "player_id") %>%
+      dplyr::mutate(
+        n_matches = dplyr::coalesce(.data$n_matches, 0L),
+        avg_value = ifelse(.data$n_matches > 0, .data$current_value / .data$n_matches, 0)
+      )
+  }
+
   if (identical(definition$query_strategy, "cumulative")) {
     grouped <- df %>%
       dplyr::group_by(.data$player_id, .data$name) %>%
       dplyr::summarise(
         last_match_date = max(.data$match_date),
         last_value = dplyr::nth(.data$stat_column, which.max(.data$match_date)),
-        avg_value = mean(.data$stat_column, na.rm = TRUE),
         current_value = if (identical(definition$aggregation, "count")) {
           dplyr::n_distinct(.data$stat_column)
         } else {
           sum(.data$stat_column, na.rm = TRUE)
         },
         .groups = "drop"
-      )
+      ) %>%
+      attach_match_rate()
 
     if (identical(definition$aggregation, "count")) {
       grouped$last_value <- 1
-      grouped$avg_value <- 1
     }
 
     progress <- local_step_progress(
@@ -173,6 +202,7 @@ local_milestone_query <- function(definition, player_id = NULL, filters = NULL) 
           last_match_date = .data$last_match_date,
           last_value = .data$last_value,
           avg_value = .data$avg_value,
+          n_matches = .data$n_matches,
           current_value = .data$current_value,
           current_tier = progress$current_tier,
           next_threshold = progress$next_threshold,
@@ -211,13 +241,15 @@ local_milestone_query <- function(definition, player_id = NULL, filters = NULL) 
       current_value = dplyr::n(),
       .groups = "drop"
     ) %>%
+    attach_match_rate() %>%
     dplyr::transmute(
       display_name = paste0(definition$display_name, " - ", .data$score_tier),
       player_id = .data$player_id,
       name = .data$name,
       last_match_date = .data$last_match_date,
       last_value = 1,
-      avg_value = 1,
+      avg_value = .data$avg_value,
+      n_matches = .data$n_matches,
       current_value = .data$current_value,
       current_tier = floor(.data$current_value / 50) * 50,
       next_threshold = floor(.data$current_value / 50) * 50 + 50,

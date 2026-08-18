@@ -10,7 +10,33 @@ legend_swatch <- function(colour) {
   )
 }
 
+fmt_stat <- function(value, digits = 0) {
+  value <- suppressWarnings(as.numeric(value))[1]
+  if (length(value) == 0 || is.na(value)) {
+    return("0")
+  }
+  format(round(value, digits), nsmall = digits, big.mark = ",", trim = TRUE)
+}
+
 milestoneSnapshotLegend <- function() {
+  season <- season_remaining()
+  remaining_pct <- round(100 * season$remaining_frac)
+  remaining_matches <- round(season$remaining_matches, 1)
+
+  season_copy <- if (isTRUE(season$in_season)) {
+    paste0(
+      "About ", remaining_pct, "% of the current season remains (~",
+      remaining_matches, " of ", SEASON_MATCHES,
+      " matches). Seasons run 1 September to 1 April."
+    )
+  } else {
+    paste0(
+      "The next season starts 1 September and ends 1 April (~",
+      SEASON_MATCHES,
+      " matches). Cards treat the upcoming season as fully remaining."
+    )
+  }
+
   div(
     class = "milestone-legend",
     style = paste(
@@ -24,25 +50,30 @@ milestoneSnapshotLegend <- function() {
       style = "margin:0 0 10px 0;",
       "Each card is that player's progress toward the ",
       tags$strong("next milestone"),
-      " in the selected series. Cards only appear for milestones the player has started."
+      " in the selected series. Colour shows whether their average for that category ",
+      "is enough to get there with the matches left this season. ",
+      "Cards only appear for milestones the player has started."
     ),
+    tags$p(style = "margin:0 0 10px 0;color:#475569;", season_copy),
     fluidRow(
       column(
         6,
         legend_swatch("#198754"),
-        tags$span("Green — more than halfway to the next target")
+        tags$span("Green — on track to reach the next target this season")
       ),
       column(
         6,
         legend_swatch("#ffc107"),
-        tags$span("Yellow — halfway or less to the next target")
+        tags$span("Yellow — not expected to reach it at their current average")
       )
     ),
     tags$ul(
       style = "margin:12px 0 0 18px;",
       tags$li(tags$strong("Current"), " — career total so far (runs, wickets, appearances, and so on)"),
       tags$li(tags$strong("Next Target"), " — the next threshold, such as 1,000 runs or 50 wickets"),
-      tags$li(tags$strong("Status"), " — still in progress until that target is reached")
+      tags$li(tags$strong("Average"), " — that category per match in the selected series"),
+      tags$li(tags$strong("Projected"), " — current total plus average times matches remaining"),
+      tags$li(tags$strong("Status"), " — on track or unlikely based on that projection")
     )
   )
 }
@@ -139,26 +170,29 @@ playerDashboardServer <- function(id) {
 
       cards <- lapply(seq_len(nrow(progress_tbl)), function(i) {
         row <- progress_tbl[i, ]
+        on_track <- isTRUE(row$season_achievable)
+        tone <- if (on_track) "success" else "warning"
 
         card(
-          class = paste0(
-            "border-",
-            ifelse(row$progress_pct > 50, "success", "warning")
-          ),
+          class = paste0("border-", tone),
 
           card_header(row$display_name),
 
-          p(paste("Current:", coalesce(row$current_value, 0))),
-          p(paste("Next Target:", coalesce(row$next_target, 0))),
+          p(paste("Current:", fmt_stat(coalesce(row$current_value, 0)))),
+          p(paste("Next Target:", fmt_stat(coalesce(row$next_target, 0)))),
+          p(paste("Average:", fmt_stat(coalesce(row$avg_value, 0), 2), "per match")),
+          p(paste(
+            "Remaining:",
+            fmt_stat(coalesce(row$remaining_matches, 0), 1),
+            "matches"
+          )),
+          p(paste("Projected:", fmt_stat(coalesce(row$projected, 0)))),
           p(paste("Status:", row$achieved)),
 
           div(
             class = "progress",
             div(
-              class = paste0(
-                "progress-bar bg-",
-                ifelse(row$progress_pct > 50, "success", "warning")
-              ),
+              class = paste0("progress-bar bg-", tone),
               style = paste0("width:", row$progress_pct, "%;")
             )
           )
@@ -189,15 +223,15 @@ playerDashboardServer <- function(id) {
         )
         
         p_progress %>%
-          select(display_name, current_value, next_target, progress_pct) %>%
-          mutate(
-            progress_pct = paste(round(progress_pct, 1), "%")
-          ) %>%
-          rename(
-            "Milestone" = "display_name", 
-            "Value" = "current_value", 
-            "Target" = "next_target", 
-            "Percent Finished" = "progress_pct")
+          transmute(
+            Milestone = display_name,
+            Value = current_value,
+            Target = next_target,
+            `Avg / match` = round(avg_value, 2),
+            `Matches left` = round(remaining_matches, 1),
+            Projected = round(projected, 1),
+            `On track` = ifelse(season_achievable, "Yes", "No")
+          )
       },
       options = list(
         pageLength = 8,

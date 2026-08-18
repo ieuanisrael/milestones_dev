@@ -41,11 +41,26 @@ get_player_milestone_summary <- function(
     res <- res %>%
       filter(display_name == select_choices[i, ]$display_name)
 
+    if (nrow(res) == 0) {
+      return(NULL)
+    }
+
     current_value <- as.numeric(res$current_value)
+    next_target <- as.numeric(res$next_threshold)
+    avg_value <- if ("avg_value" %in% names(res)) {
+      suppressWarnings(as.numeric(res$avg_value))
+    } else {
+      0
+    }
 
     state <- build_milestone_state(
       current_value,
-      res$next_threshold
+      next_target
+    )
+    season <- assess_season_reach(
+      current_value = current_value,
+      next_target = next_target,
+      avg_value = avg_value
     )
 
     tibble::tibble(
@@ -54,8 +69,14 @@ get_player_milestone_summary <- function(
       threshold_value = res$current_tier,
       remaining = state$remaining,
       progress_pct = state$progress_pct,
-      next_target = res$next_threshold,
-      achieved = "In Progress"
+      next_target = next_target,
+      avg_value = season$avg_value,
+      remaining_matches = season$remaining_matches,
+      remaining_frac = season$remaining_frac,
+      projected = season$projected,
+      season_achievable = season$achievable,
+      in_season = season$in_season,
+      achieved = season$status
     )
   })
 

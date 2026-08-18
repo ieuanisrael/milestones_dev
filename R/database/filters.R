@@ -24,7 +24,7 @@ sql_list <- function(values) {
   paste0("(", paste(values, collapse = ","), ")")
 }
 
-build_filter_clause <- function(filters, player_id = NULL, definition = NULL) {
+build_filter_clause <- function(filters, player_id = NULL, definition = NULL, include_tier_cutoff = TRUE) {
   clauses <- c()
 
   if (!is.null(filters) && has_filter_value(filters$format)) {
@@ -53,7 +53,11 @@ build_filter_clause <- function(filters, player_id = NULL, definition = NULL) {
     clauses <- c(clauses, paste0("p.player_id = ", sql_literal(player_id)))
   }
 
-  if (!is.null(definition) && definition$query_strategy %in% c("tiered_innings", "tiered_match")) {
+  if (
+    include_tier_cutoff &&
+      !is.null(definition) &&
+      definition$query_strategy %in% c("tiered_innings", "tiered_match")
+  ) {
     clauses <- c(clauses, glue::glue("pi.{definition$value_column} >= {definition$first_value}"))
   }
 
