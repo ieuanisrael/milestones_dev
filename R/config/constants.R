@@ -9,3 +9,10 @@ series_choices <- c(
   "Aus Domestic T20 M",
   "Aus Domestic T20 F"
 )
+series_matches <- c(
+  "Aus Domestic 1st Class M" = 10,
+  "Aus Domestic OD M" = 7,
+  "Aus Domestic OD F" = 12,
+  "Aus Domestic T20 M" = 10,
+  "Aus Domestic T20 F" = 10
+)

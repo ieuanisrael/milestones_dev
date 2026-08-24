@@ -58,6 +58,7 @@ get_player_milestone_summary <- function(
       next_target
     )
     season <- assess_season_reach(
+      series = filters$series,
       current_value = current_value,
       next_target = next_target,
       avg_value = avg_value
