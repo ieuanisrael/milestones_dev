@@ -4,30 +4,26 @@
 milestoneExplorerUI <- function(id) {
   ns <- NS(id)
   fluidRow(
-    card(
-      card_header("Milestone Explorer"),
-      
-      conditionalFiltersUI(ns("milestone_conditional_filters")),
-      
-      card_body(
-        fluidRow(
-          column(
-            3,
-            radioButtons(
-              ns("milestone"),
-              "Milestone",
-              choices = setNames(
-                seq_len(nrow(select_choices)),
-                select_choices$display_name_ui
-              ),
-              #options = list(dropdownParent = "body", `live-search` = TRUE),
-              selected = 1
-            )
-          ),
-          column(
-            9,
-            DT::DTOutput(ns("leaderboard")) %>% withSpinner()
+    conditionalFiltersUI(ns("milestone_conditional_filters")),
+    
+    card_body(
+      fluidRow(
+        column(
+          3,
+          radioButtons(
+            ns("milestone"),
+            "Milestone",
+            choices = setNames(
+              seq_len(nrow(select_choices)),
+              select_choices$display_name_ui
+            ),
+            #options = list(dropdownParent = "body", `live-search` = TRUE),
+            selected = 1
           )
+        ),
+        column(
+          9,
+          DT::DTOutput(ns("leaderboard")) %>% withSpinner()
         )
       )
     )
@@ -58,8 +54,11 @@ milestoneExplorerServer <- function(id) {
     output$leaderboard <- DT::renderDT(
       {
         leaderboard_data()
-      },
-      options = list(pageLength = 10)
+      }, 
+      options = list(
+        scrollY = "500px",  # Sets the fixed vertical scroll height
+        paging = FALSE       # Disables pagination to scroll all data
+      )
     )
   })
 }

@@ -48,32 +48,15 @@ milestoneSnapshotLegend <- function() {
     ),
     tags$p(
       style = "margin:0 0 10px 0;",
-      "Each card is that player's progress toward the ",
-      tags$strong("next milestone"),
-      " in the selected series. Colour shows whether their average for that category ",
-      "is enough to get there with the matches left this season. ",
+      "Each card displays a players progress toward the next milestone in the selected series."
+    ),
+    tags$p(
+      style = "margin:0 0 10px 0;",
+      "The coloured bar indicates if they are on track ",legend_swatch("#198754")," or unlikely ",legend_swatch("#ffc107")," to reach the next milestone this season based on their historical cadence."
+    ),
+    tags$p(
+      style = "margin:0 0 10px 0;",
       "Cards only appear for milestones the player has started."
-    ),
-    tags$p(style = "margin:0 0 10px 0;color:#475569;", season_copy),
-    fluidRow(
-      column(
-        6,
-        legend_swatch("#198754"),
-        tags$span("Green — on track to reach the next target this season")
-      ),
-      column(
-        6,
-        legend_swatch("#ffc107"),
-        tags$span("Yellow — not expected to reach it at their current average")
-      )
-    ),
-    tags$ul(
-      style = "margin:12px 0 0 18px;",
-      tags$li(tags$strong("Current"), " — career total so far (runs, wickets, appearances, and so on)"),
-      tags$li(tags$strong("Next Target"), " — the next threshold, such as 1,000 runs or 50 wickets"),
-      tags$li(tags$strong("Average"), " — that category per match in the selected series"),
-      tags$li(tags$strong("Projected"), " — current total plus average times matches remaining"),
-      tags$li(tags$strong("Status"), " — on track or unlikely based on that projection")
     )
   )
 }
@@ -81,8 +64,7 @@ milestoneSnapshotLegend <- function() {
 playerDashboardUI <- function(id) {
   ns <- NS(id)
 
-  card(
-    card_header("Player Overview"),
+  fluidRow(
 
     conditionalFiltersUI(ns("conditional_filters")),
 
@@ -180,15 +162,7 @@ playerDashboardServer <- function(id) {
 
           p(paste("Current:", fmt_stat(coalesce(row$current_value, 0)))),
           p(paste("Next Target:", fmt_stat(coalesce(row$next_target, 0)))),
-          p(paste("Average:", fmt_stat(coalesce(row$avg_value, 0), 2), "per match")),
-          p(paste(
-            "Remaining:",
-            fmt_stat(coalesce(row$remaining_matches, 0), 1),
-            "matches"
-          )),
           p(paste("Projected:", fmt_stat(coalesce(row$projected, 0)))),
-          p(paste("Status:", row$achieved)),
-
           div(
             class = "progress",
             div(
@@ -227,9 +201,7 @@ playerDashboardServer <- function(id) {
             Milestone = display_name,
             Value = current_value,
             Target = next_target,
-            `Avg / match` = round(avg_value, 2),
-            `Matches left` = round(remaining_matches, 1),
-            Projected = round(projected, 1),
+            Projected = round(projected, 0),
             `On track` = ifelse(season_achievable, "Yes", "No")
           )
       },

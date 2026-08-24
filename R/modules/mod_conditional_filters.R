@@ -23,7 +23,7 @@ conditionalFiltersUI <- function(id) {
     card_body(
       fluidRow(
         column(
-          4,
+          3,
           pickerInput(
             ns("series"),
             "Series",
@@ -33,7 +33,7 @@ conditionalFiltersUI <- function(id) {
           )
         ),
         column(
-          4,
+          3,
           pickerInput(
             ns("venue"),
             "Venue",
@@ -43,13 +43,20 @@ conditionalFiltersUI <- function(id) {
           )
         ),
         column(
-          4,
+          3,
           pickerInput(
             ns("team"),
             "Team",
             selected = "All",
             choices = "All",
             options = list(container = "body", `live-search` = TRUE)
+          )
+        ),
+        column(
+          3,
+          div(
+            style = "display:flex;align-items:center;height:100%;min-height:72px;",
+            actionButton(ns("apply"), "Apply Filters", class = "btn-primary")
           )
         )
       ),
@@ -63,14 +70,7 @@ conditionalFiltersUI <- function(id) {
           "margin:0 0 12px 0;"
         ),
         fluidRow(
-          column(9, uiOutput(ns("filter_legend"))),
-          column(
-            3,
-            div(
-              style = "display:flex;align-items:center;height:100%;min-height:72px;",
-              actionButton(ns("apply"), "Apply Filters", class = "btn-primary")
-            )
-          )
+          column(12, uiOutput(ns("filter_legend")))
         )
       )
     )
@@ -130,10 +130,7 @@ conditionalFiltersServer <- function(id) {
       }
 
       fluidRow(
-        column(
-          3,
-          filter_legend_item("Date range", date_text)
-        ),
+        
         column(
           3,
           filter_legend_item(
@@ -151,7 +148,12 @@ conditionalFiltersServer <- function(id) {
         column(
           3,
           filter_legend_item("Team", team_text)
+        ),
+        column(
+          3,
+          filter_legend_item("Date range", date_text)
         )
+        
       )
     })
 

@@ -48,7 +48,7 @@ ui <- page_navbar(
   nav_panel("Player Milestones", playerDashboardUI("player")),
   nav_panel("Milestone Leaderboard", milestoneExplorerUI("explorer")),
 
-  title = "Player Milestone Studio",
+  title = "Cricket NSW Milestones",
   
   footer = footer_row
 )
