@@ -96,3 +96,4 @@ if (is_local_data()) {
   source("./email/email_html.R")
   message("Wrote player_milestone_update.html")
 }
+

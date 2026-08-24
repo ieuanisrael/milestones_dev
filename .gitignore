@@ -2,6 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
-*constants*
 !R/config/local_constants.R
 player_milestone_update.html

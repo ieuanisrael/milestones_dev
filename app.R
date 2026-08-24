@@ -10,6 +10,8 @@ library(glue)
 library(DBI)
 library(odbc)
 
+Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
+
 # Configuration and lookup definitions
 source("./R/config/milestone_def.R")
 source("./R/config/select_choices.R")
