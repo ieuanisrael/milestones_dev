@@ -96,8 +96,8 @@ SELECT
   COUNT(*) AS current_value,
   mc.n_matches,
   CAST(COUNT(*) AS FLOAT) / NULLIF(mc.n_matches, 0) AS avg_value,
-  FLOOR(COUNT(*) / 50.0) * 50 AS current_tier,
-  FLOOR(COUNT(*) / 50.0) * 50 + 50 AS next_threshold,
+  FLOOR(COUNT(*) / 5.0) * 5 AS current_tier,
+  FLOOR(COUNT(*) / 5.0) * 5 + 5 AS next_threshold,
   'tiered_innings' AS milestone_type
 FROM (
     SELECT
@@ -168,8 +168,8 @@ SELECT
     COUNT(*) AS current_value,
     mc.n_matches,
     CAST(COUNT(*) AS FLOAT) / NULLIF(mc.n_matches, 0) AS avg_value,
-    FLOOR(COUNT(*) / 50.0) * 50 AS current_tier,
-    FLOOR(COUNT(*) / 50.0) * 50 + 50 AS next_threshold,
+    FLOOR(COUNT(*) / 5.0) * 5 AS current_tier,
+    FLOOR(COUNT(*) / 5.0) * 5 + 5 AS next_threshold,
     'tiered_match' AS milestone_type
 FROM (
     SELECT
