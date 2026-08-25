@@ -17,10 +17,10 @@ milestoneExplorerUI <- function(id) {
               seq_len(nrow(select_choices)),
               select_choices$display_name_ui
             ),
-            #options = list(dropdownParent = "body", `live-search` = TRUE),
             selected = 1
           )
         ),
+        
         column(
           9,
           DT::DTOutput(ns("leaderboard")) %>% withSpinner()
@@ -34,7 +34,26 @@ milestoneExplorerUI <- function(id) {
 milestoneExplorerServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     filters <- conditionalFiltersServer("milestone_conditional_filters")
-
+  
+    update_milestones <- observeEvent(filters(), {
+      
+      choices <- milestone_choices %>% 
+        filter(.data[[names(series_choices)[series_choices == filters()$series]]] == 1) %>%
+        pull(Milestone)
+      
+      mlstne_chcs <- select_choices[select_choices$display_name_ui %in% choices,]
+      
+      updateRadioButtons(
+        session,
+        'milestone',
+        choices = setNames(
+          seq_len(nrow(mlstne_chcs)),
+          mlstne_chcs$display_name_ui
+        ),
+        selected = 1
+      )
+    })
+    
     selected_definition <- reactive({
       req(input$milestone)
 
