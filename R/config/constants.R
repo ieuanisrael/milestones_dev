@@ -21,9 +21,6 @@ series_choices <- setNames(
   series_db$ids, series_db$names
 )
 
-milestone_choices <- readxl::read_xlsx('mikes_worksheet.xlsx',sheet = 3)
-
-
 series_matches <- c(
   '3' = 10,
   '4' = 7,

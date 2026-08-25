@@ -54,9 +54,10 @@ build_filter_clause <- function(filters, player_id = NULL, definition = NULL, in
   if (
     include_tier_cutoff &&
       !is.null(definition) &&
-      definition$query_strategy %in% c("tiered_innings", "tiered_match")
+      definition$query_strategy %in% c("tiered_innings", "tiered_match") &&
+      !is.na(event_cutoff(definition))
   ) {
-    clauses <- c(clauses, glue::glue("pi.{definition$value_column} >= {definition$first_value}"))
+    clauses <- c(clauses, glue::glue("pi.{definition$value_column} >= {event_cutoff(definition)}"))
   }
 
   if (!is.null(definition) && definition$definition_id == "carried_bat") {

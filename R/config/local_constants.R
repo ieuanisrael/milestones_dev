@@ -33,31 +33,3 @@ series_matches <- c(
 )
 
 all_id <- "0"
-
-milestone_choices <- data.frame(
-  Milestone = c(
-    "Appearances",
-    "Career Runs",
-    "50s",
-    "Centuries",
-    "150s",
-    "200s",
-    "250s",
-    "Career Wickets",
-    "Wicket Innings Haul - 5",
-    "Wicket Innings Haul - 10",
-    "Wicket Match Haul - 10",
-    "Career Dismissals",
-    "Career Catches",
-    "Dismissals In Innings - 5",
-    "Dismissals In Innings - 6",
-    "Carried Bat"
-  ),
-  `Aus Domestic 1st Class M` = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-  `Aus Domestic OD M` = c(1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
-  `Aus Domestic T20 M` = c(1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
-  `Aus Domestic OD F` = c(1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
-  `Aus Domestic T20 F` = c(1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1),
-  check.names = FALSE,
-  stringsAsFactors = FALSE
-)

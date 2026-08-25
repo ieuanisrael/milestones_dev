@@ -25,7 +25,7 @@ top_10_thresholds <- results %>%
 
 single_performance_milestones <- results %>%
   filter(
-    str_detect(display_name, "Tiers|Innings|Match"),
+    str_detect(display_name, "50s|Centuries|150s|200s|250s|Haul|Dismissals|Carried|Tiers|Innings|Match"),
     last_match_date > as.Date("2026-01-01"),
     player %in% team_list$name
   )
@@ -37,14 +37,11 @@ single_performance_milestones <- results %>%
 last_match_performance_label <- function(x) {
   display_name <- as.character(x$display_name)
 
-  if (grepl("Batting Tiers", display_name)) {
-    tier <- suppressWarnings(as.integer(as.numeric(sub(".*-\\s*", "", display_name))))
-    if (!is.na(tier) && identical(tier, 100L)) {
-      return("a century")
-    }
-    if (!is.na(tier)) {
-      return(paste("a", tier))
-    }
+  if (identical(display_name, "Centuries")) {
+    return("a century")
+  }
+  if (display_name %in% c("50s", "150s", "200s", "250s")) {
+    return(paste("a", sub("s$", "", display_name)))
   }
 
   as.character(x$display_name_ui)

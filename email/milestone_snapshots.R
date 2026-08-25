@@ -28,12 +28,13 @@ source("./R/database/connection.R")
 source("./R/database/filters.R")
 source("./R/database/lookups.R")
 source("./R/database/local_data.R")
+source("./R/milestone_functions/milestone_helpers.R")
+source("./R/milestone_functions/query_builders.R")
 
-source("./email/email_milestone_helpers.R")
-source("./email/email_query_builder.R")
+enabled <- milestones_for_series(filters$series)
 
-results <- purrr::map_df(seq_len(nrow(milestones)), function(i) {
-  definition <- milestones[i, ]
+results <- purrr::map_df(seq_len(nrow(enabled)), function(i) {
+  definition <- enabled[i, ]
 
   res <- tryCatch(
     execute_milestone_query(
@@ -51,34 +52,29 @@ results <- purrr::map_df(seq_len(nrow(milestones)), function(i) {
   }
 
   current_value <- as.numeric(res$current_value)
-
+  progress <- progress_from_thresholds(
+    current_value,
+    thresholds_for(definition$display_name, filters$series)
+  )
   state <- build_milestone_state(
     current_value,
-    res$next_threshold
+    progress$next_threshold
   )
-
-  display_name_ui <- select_choices$display_name_ui[match(res$display_name, select_choices$display_name)]
-  batting <- grepl("Batting Tiers", res$display_name)
-  if (any(batting)) {
-    tier <- suppressWarnings(as.integer(as.numeric(sub(".*-\\s*", "", res$display_name[batting]))))
-    display_name_ui[batting] <- ifelse(tier == 100, "Centuries", paste0(tier, "s"))
-  }
-  display_name_ui[is.na(display_name_ui)] <- res$display_name[is.na(display_name_ui)]
 
   tibble::tibble(
     display_name = res$display_name,
-    display_name_ui = display_name_ui,
+    display_name_ui = definition$display_name_ui,
     current_value = current_value,
-    threshold_value = res$current_tier,
+    threshold_value = progress$current_tier,
     remaining = state$remaining,
     progress_pct = state$progress_pct,
-    next_target = res$next_threshold,
+    next_target = progress$next_threshold,
     last_match_date = res$last_match_date,
     last_value = res$last_value,
     avg_value = res$avg_value,
     player = res$name,
-    milestone_achieved = current_value - last_value < threshold_value,
-    within_threshold = 10 * avg_value + current_value > next_target
+    milestone_achieved = current_value - last_value < progress$current_tier,
+    within_threshold = 10 * avg_value + current_value > progress$next_threshold
   )
 })
 

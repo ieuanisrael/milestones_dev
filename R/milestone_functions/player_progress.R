@@ -8,69 +8,73 @@ get_player_progress <- function(player_id, filters = NULL) {
 get_player_milestone_summary <- function(
   player_id,
   filters = NULL,
-  milestone_definitions = milestones,
-  choice_definitions = select_choices
+  milestone_definitions = NULL
 ) {
-  if (is.null(player_id) || !nzchar(player_id)) {
+  if (is.null(player_id) || !nzchar(as.character(player_id))) {
     return(tibble::tibble())
   }
 
-  results <- purrr::map_df(seq_len(nrow(select_choices)), function(i) {
-    definition <- milestone_definitions
-    choices <- choice_definitions[i, ]
+  series <- if (is.null(filters)) NULL else filters$series
+  if (is.null(milestone_definitions)) {
+    milestone_definitions <- milestones_for_series(series)
+  }
 
-    definition <- definition[
-      choices$definition_id == definition$definition_id,
-    ]
+  if (nrow(milestone_definitions) == 0) {
+    return(tibble::tibble())
+  }
 
-    query_data <- execute_milestone_query(
-      definition = definition,
-      player_id = player_id,
-      filters = filters
-    )
+  purrr::map_df(seq_len(nrow(milestone_definitions)), function(i) {
+    definition <- milestone_definitions[i, ]
 
     res <- tryCatch(
-      query_data,
+      execute_milestone_query(
+        definition = definition,
+        player_id = player_id,
+        filters = filters
+      ),
       error = function(e) NULL
-    ) 
+    )
 
     if (is.null(res) || nrow(res) == 0 || is.null(res$current_value) || all(is.na(res$current_value))) {
       return(NULL)
     }
-    
+
     res <- res %>%
-      filter(display_name == select_choices[i, ]$display_name)
+      dplyr::filter(.data$display_name == definition$display_name)
 
     if (nrow(res) == 0) {
       return(NULL)
     }
 
-    current_value <- as.numeric(res$current_value)
-    next_target <- as.numeric(res$next_threshold)
+    current_value <- as.numeric(res$current_value)[1]
     avg_value <- if ("avg_value" %in% names(res)) {
-      suppressWarnings(as.numeric(res$avg_value))
+      suppressWarnings(as.numeric(res$avg_value))[1]
     } else {
       0
     }
 
+    progress <- progress_from_thresholds(
+      current_value,
+      thresholds_for(definition$display_name, series)
+    )
     state <- build_milestone_state(
       current_value,
-      next_target
+      progress$next_threshold
     )
     season <- assess_season_reach(
-      series = filters$series,
+      series = series,
       current_value = current_value,
-      next_target = next_target,
+      next_target = progress$next_threshold,
       avg_value = avg_value
     )
 
     tibble::tibble(
-      display_name = choices$display_name_ui,
+      display_name = definition$display_name_ui,
       current_value = current_value,
-      threshold_value = res$current_tier,
+      threshold_value = progress$current_tier,
       remaining = state$remaining,
       progress_pct = state$progress_pct,
-      next_target = next_target,
+      next_target = progress$next_threshold,
       avg_value = season$avg_value,
       remaining_matches = season$remaining_matches,
       remaining_frac = season$remaining_frac,
@@ -80,7 +84,4 @@ get_player_milestone_summary <- function(
       achieved = season$status
     )
   })
-
-  results
 }
-

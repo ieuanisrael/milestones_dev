@@ -29,10 +29,10 @@ build_cumulative_query <- function(definition, player_id = NULL, filters = NULL)
     definition$value_column
   )
 
-  progress <- build_step_progress(
+  series <- if (is.null(filters)) NULL else filters$series
+  progress <- build_threshold_progress(
     value_expr = agg_sql,
-    first_value = definition$first_value,
-    multiple = definition$multiple
+    thresholds = thresholds_for(definition$display_name, series)
   )
 
   filter_sql <- build_filter_clause(filters, player_id, definition)
@@ -64,9 +64,13 @@ ORDER BY
 build_tiered_innings_query <- function(definition, player_id = NULL, filters = NULL) {
   tier_case <- build_tier_case(
     value_column = definition$value_column,
-    first_value = definition$first_value,
-    multiple = definition$multiple,
-    max_value = definition$max_value
+    event_values = related_event_values(definition)
+  )
+
+  series <- if (is.null(filters)) NULL else filters$series
+  progress <- build_threshold_progress(
+    value_expr = "COUNT(*)",
+    thresholds = thresholds_for(definition$display_name, series)
   )
 
   filter_sql <- build_filter_clause(filters, player_id, definition)
@@ -77,6 +81,7 @@ build_tiered_innings_query <- function(definition, player_id = NULL, filters = N
     include_tier_cutoff = FALSE
   )
   from_sql <- milestone_base_from_sql()
+  event_value <- event_cutoff(definition)
 
   glue::glue(
     "
@@ -90,14 +95,14 @@ WITH match_counts AS (
       p.player_id
 )
 SELECT
-  CONCAT('{definition$display_name} - ', current_tier) AS display_name,
+  '{definition$display_name}' AS display_name,
   x.player_id,
   x.name,
   COUNT(*) AS current_value,
   mc.n_matches,
   CAST(COUNT(*) AS FLOAT) / NULLIF(mc.n_matches, 0) AS avg_value,
-  FLOOR(COUNT(*) / 5.0) * 5 AS current_tier,
-  FLOOR(COUNT(*) / 5.0) * 5 + 5 AS next_threshold,
+  {progress$current_tier} AS current_tier,
+  {progress$next_threshold} AS next_threshold,
   'tiered_innings' AS milestone_type
 FROM (
     SELECT
@@ -109,10 +114,10 @@ FROM (
 ) x
 JOIN match_counts mc
   ON mc.player_id = x.player_id
+WHERE current_tier = {event_value}
 GROUP BY
   x.player_id,
   x.name,
-  current_tier,
   mc.n_matches
 ORDER BY
   current_value DESC
@@ -123,9 +128,13 @@ ORDER BY
 build_tiered_match_query <- function(definition, player_id = NULL, filters = NULL) {
   tier_case <- build_tier_case(
     value_column = "match_value",
-    first_value = definition$first_value,
-    multiple = definition$multiple,
-    max_value = definition$max_value
+    event_values = related_event_values(definition)
+  )
+
+  series <- if (is.null(filters)) NULL else filters$series
+  progress <- build_threshold_progress(
+    value_expr = "COUNT(*)",
+    thresholds = thresholds_for(definition$display_name, series)
   )
 
   filter_sql <- build_filter_clause(filters, player_id, definition)
@@ -136,6 +145,7 @@ build_tiered_match_query <- function(definition, player_id = NULL, filters = NUL
     include_tier_cutoff = FALSE
   )
   from_sql <- milestone_base_from_sql()
+  event_value <- event_cutoff(definition)
 
   glue::glue(
     "
@@ -162,14 +172,14 @@ match_summary AS (
       pi.match_id
 )
 SELECT
-    CONCAT('{definition$display_name} - ', current_tier) AS display_name,
+    '{definition$display_name}' AS display_name,
     x.player_id,
     x.name,
     COUNT(*) AS current_value,
     mc.n_matches,
     CAST(COUNT(*) AS FLOAT) / NULLIF(mc.n_matches, 0) AS avg_value,
-    FLOOR(COUNT(*) / 5.0) * 5 AS current_tier,
-    FLOOR(COUNT(*) / 5.0) * 5 + 5 AS next_threshold,
+    {progress$current_tier} AS current_tier,
+    {progress$next_threshold} AS next_threshold,
     'tiered_match' AS milestone_type
 FROM (
     SELECT
@@ -180,11 +190,10 @@ FROM (
 ) x
 JOIN match_counts mc
   ON mc.player_id = x.player_id
-WHERE current_tier IS NOT NULL
+WHERE current_tier = {event_value}
 GROUP BY
   x.player_id,
   x.name,
-  current_tier,
   mc.n_matches
 ORDER BY
   current_value DESC

@@ -1,11 +1,11 @@
 # Shared helper functions for milestone queries.
 # These utilities build tier expressions and progress summaries for the query layer.
 
-build_tier_case <- function(value_column, first_value, multiple, max_value = 500) {
-  if (is.na(multiple) || multiple == 0) {
-    tiers <- first_value
-  } else {
-    tiers <- seq(first_value, max_value, by = multiple)
+build_tier_case <- function(value_column, event_values) {
+  tiers <- sort(unique(as.numeric(event_values)))
+  tiers <- tiers[!is.na(tiers)]
+  if (length(tiers) == 0) {
+    stop("No event values supplied for tier case")
   }
 
   case_lines <- purrr::map_chr(
@@ -20,33 +20,76 @@ build_tier_case <- function(value_column, first_value, multiple, max_value = 500
   )
 }
 
-build_step_progress <- function(value_expr, first_value, multiple) {
-  list(
-    current_tier = glue::glue(
-      "
-      CASE
-        WHEN {value_expr} < {first_value}
-        THEN 0
-        ELSE
-          FLOOR(({value_expr}-{first_value})/{multiple}) * {multiple}
-          + {first_value}
-      END
-      "
-    ),
+build_threshold_progress <- function(value_expr, thresholds) {
+  thresholds <- sort(unique(as.numeric(thresholds)))
+  thresholds <- thresholds[!is.na(thresholds)]
 
-    next_threshold = glue::glue(
-      "
-      CASE
-        WHEN {value_expr} < {first_value}
-        THEN {first_value}
-        ELSE
-          FLOOR(({value_expr}-{first_value})/{multiple}) * {multiple}
-          + {first_value}
-          + {multiple}
-      END
-      "
+  if (length(thresholds) == 0) {
+    return(list(
+      current_tier = "0",
+      next_threshold = "0"
+    ))
+  }
+
+  current_lines <- purrr::map_chr(
+    rev(thresholds),
+    ~ glue::glue("WHEN {value_expr} >= {.x} THEN {.x}")
+  )
+  next_lines <- purrr::map_chr(
+    thresholds,
+    ~ glue::glue("WHEN {value_expr} < {.x} THEN {.x}")
+  )
+
+  list(
+    current_tier = paste0(
+      "CASE\n",
+      paste(current_lines, collapse = "\n"),
+      "\nELSE 0\nEND"
+    ),
+    next_threshold = paste0(
+      "CASE\n",
+      paste(next_lines, collapse = "\n"),
+      "\nELSE ", max(thresholds), "\nEND"
     )
   )
+}
+
+progress_from_thresholds <- function(current_value, thresholds) {
+  current_value <- suppressWarnings(as.numeric(current_value))
+  if (length(current_value) == 0) {
+    current_value <- 0
+  }
+  current_value[is.na(current_value)] <- 0
+
+  thresholds <- sort(unique(as.numeric(thresholds)))
+  thresholds <- thresholds[!is.na(thresholds)]
+
+  if (length(thresholds) == 0) {
+    return(list(
+      current_tier = rep(0, length(current_value)),
+      next_threshold = current_value
+    ))
+  }
+
+  current_tier <- vapply(
+    current_value,
+    function(v) {
+      hit <- thresholds[thresholds <= v]
+      if (length(hit) == 0) 0 else max(hit)
+    },
+    numeric(1)
+  )
+
+  next_threshold <- vapply(
+    current_value,
+    function(v) {
+      hit <- thresholds[thresholds > v]
+      if (length(hit) == 0) max(thresholds) else min(hit)
+    },
+    numeric(1)
+  )
+
+  list(current_tier = current_tier, next_threshold = next_threshold)
 }
 
 build_milestone_state <- function(current_value, next_threshold) {
@@ -57,7 +100,8 @@ build_milestone_state <- function(current_value, next_threshold) {
 
   achieved <- FALSE
   remaining <- next_threshold - current_value
-  progress_pct <- round(100 * current_value / next_threshold, 1)
+  denom <- ifelse(is.na(next_threshold) | next_threshold == 0, 1, next_threshold)
+  progress_pct <- round(100 * current_value / denom, 1)
 
   list(
     achieved = achieved,

@@ -76,7 +76,10 @@ local_apply_filters <- function(
       definition$query_strategy %in% c("tiered_innings", "tiered_match")
   ) {
     vals <- local_value(df, definition$value_column)
-    df <- df[vals >= definition$first_value, , drop = FALSE]
+    cutoff <- event_cutoff(definition)
+    if (!is.na(cutoff)) {
+      df <- df[vals >= cutoff, , drop = FALSE]
+    }
   }
 
   if (!is.null(definition) && identical(definition$definition_id, "carried_bat")) {
@@ -103,16 +106,17 @@ local_apply_filters <- function(
   df
 }
 
-local_assign_tier <- function(values, first_value, multiple, max_value) {
+local_assign_tier <- function(values, event_values) {
   if (length(values) == 0) {
     return(numeric())
   }
 
-  if (is.na(multiple) || multiple == 0) {
-    return(ifelse(values >= first_value, first_value, NA_real_))
+  tiers <- sort(unique(as.numeric(event_values)))
+  tiers <- tiers[!is.na(tiers)]
+  if (length(tiers) == 0) {
+    return(rep(NA_real_, length(values)))
   }
 
-  tiers <- seq(first_value, max_value, by = multiple)
   vapply(
     values,
     function(v) {
@@ -121,21 +125,6 @@ local_assign_tier <- function(values, first_value, multiple, max_value) {
     },
     numeric(1)
   )
-}
-
-local_step_progress <- function(value, first_value, multiple) {
-  if (is.na(multiple) || multiple == 0) {
-    multiple <- first_value
-  }
-
-  current_tier <- ifelse(
-    value < first_value,
-    0,
-    floor((value - first_value) / multiple) * multiple + first_value
-  )
-  next_threshold <- ifelse(value < first_value, first_value, current_tier + multiple)
-
-  list(current_tier = current_tier, next_threshold = next_threshold)
 }
 
 local_milestone_query <- function(definition, player_id = NULL, filters = NULL) {
@@ -152,9 +141,10 @@ local_milestone_query <- function(definition, player_id = NULL, filters = NULL) 
     dplyr::summarise(n_matches = dplyr::n_distinct(.data$match_id), .groups = "drop")
 
   df <- career_df
-  if (definition$query_strategy %in% c("tiered_innings", "tiered_match")) {
+  cutoff <- event_cutoff(definition)
+  if (definition$query_strategy %in% c("tiered_innings", "tiered_match") && !is.na(cutoff)) {
     vals <- local_value(df, definition$value_column)
-    df <- df[vals >= definition$first_value, , drop = FALSE]
+    df <- df[vals >= cutoff, , drop = FALSE]
   }
 
   if (nrow(df) == 0) {
@@ -191,10 +181,9 @@ local_milestone_query <- function(definition, player_id = NULL, filters = NULL) 
       grouped$last_value <- 1
     }
 
-    progress <- local_step_progress(
+    progress <- progress_from_thresholds(
       grouped$current_value,
-      definition$first_value,
-      definition$multiple
+      thresholds_for(definition$display_name, if (is.null(filters)) NULL else filters$series)
     )
 
     return(
@@ -228,26 +217,34 @@ local_milestone_query <- function(definition, player_id = NULL, filters = NULL) 
 
   df$score_tier <- local_assign_tier(
     df$stat_column,
-    definition$first_value,
-    definition$multiple,
-    definition$max_value
+    related_event_values(definition)
   )
   df <- df[!is.na(df$score_tier), , drop = FALSE]
+  if (!is.na(event_cutoff(definition))) {
+    df <- df[df$score_tier == event_cutoff(definition), , drop = FALSE]
+  }
 
   if (nrow(df) == 0) {
     return(tibble::tibble())
   }
 
-  df %>%
-    dplyr::group_by(.data$player_id, .data$name, .data$score_tier) %>%
+  summarised <- df %>%
+    dplyr::group_by(.data$player_id, .data$name) %>%
     dplyr::summarise(
       last_match_date = max(.data$match_date),
       current_value = dplyr::n(),
       .groups = "drop"
     ) %>%
-    attach_match_rate() %>%
+    attach_match_rate()
+
+  progress <- progress_from_thresholds(
+    summarised$current_value,
+    thresholds_for(definition$display_name, if (is.null(filters)) NULL else filters$series)
+  )
+
+  summarised %>%
     dplyr::transmute(
-      display_name = paste0(definition$display_name, " - ", .data$score_tier),
+      display_name = definition$display_name,
       player_id = .data$player_id,
       name = .data$name,
       last_match_date = .data$last_match_date,
@@ -255,8 +252,8 @@ local_milestone_query <- function(definition, player_id = NULL, filters = NULL) 
       avg_value = .data$avg_value,
       n_matches = .data$n_matches,
       current_value = .data$current_value,
-      current_tier = floor(.data$current_value / 50) * 50,
-      next_threshold = floor(.data$current_value / 50) * 50 + 50,
+      current_tier = progress$current_tier,
+      next_threshold = progress$next_threshold,
       milestone_type = definition$query_strategy
     ) %>%
     dplyr::arrange(dplyr::desc(.data$current_value))
