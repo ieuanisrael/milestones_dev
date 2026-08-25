@@ -27,7 +27,7 @@ conditionalFiltersUI <- function(id) {
           pickerInput(
             ns("series"),
             "Series",
-            selected = series_choices[1],
+            selected = series_choices[[1]],
             choices = series_choices,
             options = list(container = "body", `live-search` = TRUE)
           )
@@ -37,8 +37,8 @@ conditionalFiltersUI <- function(id) {
           pickerInput(
             ns("venue"),
             "Venue",
-            selected = "All",
-            choices = "All",
+            selected = all_id,
+            choices = setNames(all_id, "All"),
             options = list(container = "body", `live-search` = TRUE)
           )
         ),
@@ -47,8 +47,8 @@ conditionalFiltersUI <- function(id) {
           pickerInput(
             ns("team"),
             "Team",
-            selected = "All",
-            choices = "All",
+            selected = all_id,
+            choices = setNames(all_id, "All"),
             options = list(container = "body", `live-search` = TRUE)
           )
         ),
@@ -87,13 +87,13 @@ conditionalFiltersServer <- function(id) {
       team <- input$team
 
       if (is.null(series) || !nzchar(series)) {
-        series <- series_choices[1]
+        series <- series_choices[[1]]
       }
       if (is.null(venue) || !nzchar(venue)) {
-        venue <- "All"
+        venue <- all_id
       }
       if (is.null(team) || !nzchar(team)) {
-        team <- "All"
+        team <- all_id
       }
 
       min_year <- get_min_season_year(
@@ -107,9 +107,9 @@ conditionalFiltersServer <- function(id) {
           series_date_range_label(series, min_year)
         ),
         tags$div(
-          if (identical(series, "Aus Domestic T20 M")) {
+          if (identical(series, series_choices[["Aus Domestic T20 M"]])) {
             "Men's domestic T20 is limited to the Big Bash era."
-          } else if (identical(series, "Aus Domestic T20 F")) {
+          } else if (identical(series, series_choices[["Aus Domestic T20 F"]])) {
             "Women's domestic T20 is limited to the WBBL era."
           } else {
             "All seasons from this year onwards are included."
@@ -117,16 +117,16 @@ conditionalFiltersServer <- function(id) {
         )
       )
 
-      venue_text <- if (identical(venue, "All")) {
+      venue_text <- if (identical(venue, all_id)) {
         "All grounds. Choose a venue to count only matches at that ground."
       } else {
-        paste0("Only matches at ", venue, ".")
+        paste0("Only matches at selected venue")
       }
 
-      team_text <- if (identical(team, "All")) {
+      team_text <- if (identical(team, all_id)) {
         "All teams. Choose a team to count only innings for that club."
       } else {
-        paste0("Only innings for ", team, ".")
+        paste0("Only innings for selected team")
       }
 
       fluidRow(
@@ -135,10 +135,7 @@ conditionalFiltersServer <- function(id) {
           3,
           filter_legend_item(
             "Series",
-            paste0(
-              series,
-              " — career totals are counted only in this competition."
-            )
+            "Career totals are counted only in this competition."
           )
         ),
         column(
@@ -170,10 +167,6 @@ conditionalFiltersServer <- function(id) {
 
       values <- values[nzchar(values)]
 
-      if (all) {
-        values <- c("All", values)
-      }
-
       values
     }
 
@@ -188,14 +181,15 @@ conditionalFiltersServer <- function(id) {
     update_single_filter <- function(target, filters, session, conn, current_value) {
       config <- filter_config[[target]]
       values <- config$getter(filters = filters, conn = conn)
-      choices <- make_choices(values, target != "series")
+      
+      choices <- make_choices(values$ids, target != 'series')
 
-      selected <- if (current_value %in% choices) current_value else "All"
+      selected <- if (current_value %in% choices) current_value else all_id
 
       updatePickerInput(
         session,
         target,
-        choices = choices,
+        choices = setNames(values$ids,values$names),
         selected = selected
       )
     }
@@ -239,7 +233,7 @@ conditionalFiltersServer <- function(id) {
         filters = NULL,
         session = session,
         conn = conn,
-        current_value = "All"
+        current_value = all_id
       )
 
       update_single_filter(
@@ -247,7 +241,7 @@ conditionalFiltersServer <- function(id) {
         filters = NULL,
         session = session,
         conn = conn,
-        current_value = "All"
+        current_value = all_id
       )
 
       update_single_filter(
@@ -255,7 +249,7 @@ conditionalFiltersServer <- function(id) {
         filters = NULL,
         session = session,
         conn = conn,
-        current_value = "All"
+        current_value = all_id
       )
     }
 

@@ -2,22 +2,20 @@
 # These functions normalize filter values and turn them into safe WHERE clauses.
 
 has_filter_value <- function(value) {
+
   !is.null(value) &&
     length(value) > 0 &&
     !is.na(value) &&
-    (!is.character(value) || (nzchar(value) && !identical(value, "All")))
+    (!is.character(value) || (nzchar(value) && !identical(value, "0")))
 }
 
 sql_literal <- function(value) {
+  
   if (is.null(value) || length(value) == 0 || is.na(value)) {
     return("NULL")
   }
 
-  if (is.numeric(value) || is.integer(value)) {
-    return(as.character(value))
-  }
-
-  paste0("'", gsub("'", "''", as.character(value)), "'")
+  as.integer(value)
 }
 
 sql_list <- function(values) {
@@ -32,7 +30,7 @@ build_filter_clause <- function(filters, player_id = NULL, definition = NULL, in
   }
 
   if (!is.null(filters) && has_filter_value(filters$series)) {
-    clauses <- c(clauses, paste0("series.name = ", sql_literal(filters$series)))
+    clauses <- c(clauses, paste0("series.series_id = ", sql_literal(filters$series)))
     if (filters$series == "Aus Domestic T20 M") {
       clauses <- c(clauses, paste0("CAST(LEFT(season.name, 4) AS INT) >= 2011"))
     }
@@ -42,11 +40,11 @@ build_filter_clause <- function(filters, player_id = NULL, definition = NULL, in
   }
 
   if (!is.null(filters) && has_filter_value(filters$venue)) {
-    clauses <- c(clauses, paste0("venue.name = ", sql_literal(filters$venue)))
+    clauses <- c(clauses, paste0("venue.venue_id = ", sql_literal(filters$venue)))
   }
 
   if (!is.null(filters) && has_filter_value(filters$team)) {
-    clauses <- c(clauses, paste0("team.team_name = ", sql_literal(filters$team)))
+    clauses <- c(clauses, paste0("team.team_id = ", sql_literal(filters$team)))
   }
 
   if (!is.null(player_id)) {

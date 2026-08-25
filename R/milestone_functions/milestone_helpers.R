@@ -94,7 +94,7 @@ current_season_window <- function(today = Sys.Date()) {
   }
 }
 
-season_remaining <- function(today = Sys.Date(), series = series_choices[1]) {
+season_remaining <- function(today = Sys.Date(), series = series_choices[[1]]) {
   window <- current_season_window(today)
   total_days <- as.numeric(window$end - window$start)
 
@@ -117,7 +117,7 @@ season_remaining <- function(today = Sys.Date(), series = series_choices[1]) {
   )
 }
 
-assess_season_reach <- function(current_value, next_target, avg_value, today = Sys.Date(), series = series_choices[1]) {
+assess_season_reach <- function(current_value, next_target, avg_value, today = Sys.Date(), series = series_choices[[1]]) {
   season <- season_remaining(today, series)
 
   current_value <- suppressWarnings(as.numeric(current_value))[1]
