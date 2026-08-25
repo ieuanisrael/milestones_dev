@@ -13,7 +13,7 @@ suppressPackageStartupMessages({
 out_dir <- file.path("data", "sample")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-not_out_id <- 1L
+not_out_id <- 0L
 
 teams_m <- tibble(
   team_id = 1:6,
@@ -83,15 +83,16 @@ venues <- tibble(
 )
 
 series <- tibble(
-  series_id = 1:4,
+  series_id = c(3L, 4L, 690007L, 860011L, 860005L),
   series_name = c(
+    "Aus Domestic 1st Class M",
     "Aus Domestic OD M",
+    "Aus Domestic OD F",
     "Aus Domestic T20 M",
-    "Sheffield Shield M",
     "Aus Domestic T20 F"
   ),
-  match_length_id = c(2L, 3L, 1L, 3L),
-  format_name = c("One Day", "T20", "First Class", "T20")
+  match_length_id = c(1L, 2L, 2L, 3L, 3L),
+  format_name = c("First Class", "One Day", "One Day", "T20", "T20")
 )
 
 seasons <- tibble(
@@ -204,11 +205,11 @@ expand_innings <- function(matches, team_tbl, player_tbl, n_innings) {
   wickets[fivefer] <- pmax(wickets[fivefer], 5L)
 
   batting_position <- dplyr::case_when(
-    df$role == "opener" ~ sample(1:2, n, replace = TRUE),
-    df$role == "batter" ~ sample(3:6, n, replace = TRUE),
-    df$role == "keeper" ~ sample(5:7, n, replace = TRUE),
-    df$role == "allrounder" ~ sample(6:8, n, replace = TRUE),
-    TRUE ~ sample(8:11, n, replace = TRUE)
+    df$role == "opener" ~ sample(0:1, n, replace = TRUE),
+    df$role == "batter" ~ sample(2:5, n, replace = TRUE),
+    df$role == "keeper" ~ sample(4:6, n, replace = TRUE),
+    df$role == "allrounder" ~ sample(5:7, n, replace = TRUE),
+    TRUE ~ sample(7:10, n, replace = TRUE)
   )
 
   all_out <- (df$match_id_tmp %% 7L) == 0L
@@ -253,21 +254,29 @@ offset_ids <- function(df, offset) {
 
 message("Generating sample matches...")
 
-od_matches <- build_matches(series[1, ], teams_m, seasons)
-t20_matches <- build_matches(series[2, ], teams_m, seasons)
-shield_matches <- build_matches(series[3, ], teams_m, seasons)
-t20f_matches <- build_matches(series[4, ], teams_f, seasons)
+fc_matches <- build_matches(series[1, ], teams_m, seasons)
+od_matches <- build_matches(series[2, ], teams_m, seasons)
+odf_matches <- build_matches(series[3, ], teams_f, seasons)
+t20_matches <- build_matches(series[4, ], teams_m, seasons)
+t20f_matches <- build_matches(series[5, ], teams_f, seasons)
 
+fc_m <- expand_innings(fc_matches, teams_m, players_m, 2L)
 od_m <- expand_innings(od_matches, teams_m, players_m, 1L)
+od_f <- expand_innings(odf_matches, teams_f, players_f, 1L)
 t20_m <- expand_innings(t20_matches, teams_m, players_m, 1L)
-shield_m <- expand_innings(shield_matches, teams_m, players_m, 2L)
 t20_f <- expand_innings(t20f_matches, teams_f, players_f, 1L)
 
+offset_after <- function(...) {
+  ids <- vapply(list(...), function(x) max(x$match_id), numeric(1))
+  sum(ids)
+}
+
 innings <- bind_rows(
-  od_m,
-  offset_ids(t20_m, max(od_m$match_id)),
-  offset_ids(shield_m, max(od_m$match_id) + max(t20_m$match_id)),
-  offset_ids(t20_f, max(od_m$match_id) + max(t20_m$match_id) + max(shield_m$match_id))
+  fc_m,
+  offset_ids(od_m, max(fc_m$match_id)),
+  offset_ids(od_f, offset_after(fc_m, od_m)),
+  offset_ids(t20_m, offset_after(fc_m, od_m, od_f)),
+  offset_ids(t20_f, offset_after(fc_m, od_m, od_f, t20_m))
 )
 
 # Put NSW's latest 2025-26 matches into calendar 2026 so email "recent form" cards populate.
@@ -287,7 +296,7 @@ shift_recent_dates <- function(df, team_name, series_name, n_matches = 4L, start
 
 innings <- innings %>%
   shift_recent_dates("NSW Blues M", "Aus Domestic OD M") %>%
-  shift_recent_dates("NSW Blues M", "Sheffield Shield M")
+  shift_recent_dates("NSW Blues M", "Aus Domestic 1st Class M")
 
 tune_last_match <- function(df, player_name, series_name, column, last_value, min_date = as.Date("2026-01-01")) {
   idx <- which(df$name == player_name & df$series_name == series_name & df$match_date >= min_date)
@@ -305,7 +314,7 @@ tune_last_match <- function(df, player_name, series_name, column, last_value, mi
 force_carried_bat <- function(df, player_name, n = 3L) {
   idx <- which(df$name == player_name & df$series_name == "Aus Domestic OD M")
   take <- head(idx, n)
-  df$batting_position[take] <- 1L
+  df$batting_position[take] <- 0L
   df$batter_how_out_id[take] <- not_out_id
   df$match_innings_id_when_team_batted[take] <- 1L
   df$team_innings_1_closure_id[take] <- 2L
@@ -336,7 +345,7 @@ innings <- innings %>%
   tune_last_match("Pat Cummins", "Aus Domestic OD M", "bowler_wickets", 5L) %>%
   force_carried_bat("Daniel Hughes", n = 4L) %>%
   force_match_haul("Sean Abbott", "Aus Domestic OD M", 10L) %>%
-  force_match_haul("Sean Abbott", "Sheffield Shield M", c(10L, 4L))
+  force_match_haul("Sean Abbott", "Aus Domestic 1st Class M", c(10L, 4L))
 
 keep_idx <- which(
   innings$name == "Josh Philippe" &

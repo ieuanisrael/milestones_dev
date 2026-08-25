@@ -30,6 +30,10 @@ local_value <- function(df, value_column) {
   }
 }
 
+local_ids_equal <- function(left, right) {
+  as.character(left) == as.character(right)
+}
+
 local_apply_filters <- function(
   df,
   filters = NULL,
@@ -40,30 +44,30 @@ local_apply_filters <- function(
   df <- df[df$match_count == 1, , drop = FALSE]
 
   if (!is.null(filters) && has_filter_value(filters$format)) {
-    df <- df[df$match_length_id == filters$format, , drop = FALSE]
+    df <- df[local_ids_equal(df$match_length_id, filters$format), , drop = FALSE]
   }
 
   if (!is.null(filters) && has_filter_value(filters$series)) {
-    df <- df[df$series_name == filters$series, , drop = FALSE]
+    df <- df[local_ids_equal(df$series_id, filters$series), , drop = FALSE]
     season_year <- as.integer(substr(df$season_name, 1, 4))
-    if (identical(filters$series, "Aus Domestic T20 M")) {
+    if (identical(as.character(filters$series), as.character(series_choices[["Aus Domestic T20 M"]]))) {
       df <- df[season_year >= 2011, , drop = FALSE]
     }
-    if (identical(filters$series, "Aus Domestic T20 F")) {
+    if (identical(as.character(filters$series), as.character(series_choices[["Aus Domestic T20 F"]]))) {
       df <- df[season_year >= 2015, , drop = FALSE]
     }
   }
 
   if (!is.null(filters) && has_filter_value(filters$venue)) {
-    df <- df[df$venue_name == filters$venue, , drop = FALSE]
+    df <- df[local_ids_equal(df$venue_id, filters$venue), , drop = FALSE]
   }
 
   if (!is.null(filters) && has_filter_value(filters$team)) {
-    df <- df[df$team_name == filters$team, , drop = FALSE]
+    df <- df[local_ids_equal(df$team_id, filters$team), , drop = FALSE]
   }
 
-  if (!is.null(player_id) && length(player_id) > 0 && !identical(player_id, "")) {
-    df <- df[as.character(df$player_id) == as.character(player_id), , drop = FALSE]
+  if (!is.null(player_id) && length(player_id) > 0 && !identical(as.character(player_id), "")) {
+    df <- df[local_ids_equal(df$player_id, player_id), , drop = FALSE]
   }
 
   if (
@@ -273,14 +277,25 @@ execute_milestone_query <- function(definition, player_id = NULL, filters = NULL
   )
 }
 
+local_lookup_table <- function(df, id_col, name_col) {
+  rows <- df %>%
+    dplyr::distinct(ids = .data[[id_col]], names = .data[[name_col]]) %>%
+    dplyr::arrange(.data$names)
+
+  dplyr::bind_rows(
+    data.frame(ids = 0, names = "All", stringsAsFactors = FALSE),
+    rows
+  )
+}
+
 local_get_venues <- function(filters = NULL) {
   df <- local_apply_filters(sample_innings(), filters = filters)
-  sort(unique(df$venue_name))
+  local_lookup_table(df, "venue_id", "venue_name")
 }
 
 local_get_teams <- function(filters = NULL) {
   df <- local_apply_filters(sample_innings(), filters = filters)
-  sort(unique(df$team_name))
+  local_lookup_table(df, "team_id", "team_name")
 }
 
 local_get_players <- function(filters = NULL) {
@@ -292,11 +307,7 @@ local_get_players <- function(filters = NULL) {
 
 local_get_formats <- function(filters = NULL) {
   df <- local_apply_filters(sample_innings(), filters = filters)
-  formats <- df %>%
-    dplyr::distinct(format_id = .data$match_length_id, name = .data$format_name) %>%
-    dplyr::arrange(.data$format_id)
-
-  rbind(data.frame(format_id = "All", name = "All"), formats)
+  local_lookup_table(df, "match_length_id", "format_name")
 }
 
 local_get_min_season_year <- function(filters = NULL) {
@@ -311,13 +322,9 @@ local_get_min_season_year <- function(filters = NULL) {
 
 local_get_players_for <- function(team, series, season) {
   df <- sample_innings()
-  df <- df[
-    df$team_name == team &
-      df$series_name == series &
-      df$season_name == season,
-    ,
-    drop = FALSE
-  ]
+  series_match <- local_ids_equal(df$series_id, series) | df$series_name == series
+  team_match <- local_ids_equal(df$team_id, team) | df$team_name == team
+  df <- df[series_match & team_match & df$season_name == season, , drop = FALSE]
 
   df %>%
     dplyr::distinct(.data$player_id, .data$name) %>%

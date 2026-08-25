@@ -7,14 +7,8 @@ if (!file.exists("app.R")) {
 }
 
 team <- "NSW Blues M"
-series <- "Aus Domestic OD M"
+series <- 4
 season <- "2025-26"
-
-filters <- list(
-  series = series,
-  venue = NULL,
-  team = NULL
-)
 
 source("./R/config/milestone_def.R")
 source("./R/config/select_choices.R")
@@ -23,6 +17,12 @@ if (file.exists("./R/config/constants.R")) {
 } else {
   source("./R/config/local_constants.R")
 }
+
+filters <- list(
+  series = series,
+  venue = all_id,
+  team = NULL
+)
 
 source("./R/database/connection.R")
 source("./R/database/filters.R")

@@ -69,6 +69,15 @@ build_milestone_state <- function(current_value, next_threshold) {
 }
 
 
+series_match_total <- function(series) {
+  n <- series_matches[[as.character(series)]]
+  if (is.null(n) || length(n) == 0 || is.na(n)) {
+    10
+  } else {
+    as.numeric(n)
+  }
+}
+
 current_season_window <- function(today = Sys.Date()) {
   y <- as.integer(format(today, "%Y"))
   month <- as.integer(format(today, "%m"))
@@ -113,7 +122,7 @@ season_remaining <- function(today = Sys.Date(), series = series_choices[[1]]) {
     end = window$end,
     in_season = isTRUE(window$in_season) && today >= window$start && today < window$end,
     remaining_frac = remaining_frac,
-    remaining_matches = series_matches[[series]] * remaining_frac
+    remaining_matches = series_match_total(series) * remaining_frac
   )
 }
 

@@ -2,11 +2,11 @@
 # These functions normalize filter values and turn them into safe WHERE clauses.
 
 has_filter_value <- function(value) {
-
   !is.null(value) &&
     length(value) > 0 &&
     !is.na(value) &&
-    (!is.character(value) || (nzchar(value) && !identical(value, "0")))
+    !identical(as.character(value), all_id) &&
+    !(is.character(value) && !nzchar(value))
 }
 
 sql_literal <- function(value) {
@@ -31,10 +31,10 @@ build_filter_clause <- function(filters, player_id = NULL, definition = NULL, in
 
   if (!is.null(filters) && has_filter_value(filters$series)) {
     clauses <- c(clauses, paste0("series.series_id = ", sql_literal(filters$series)))
-    if (filters$series == "Aus Domestic T20 M") {
+    if (identical(as.character(filters$series), as.character(series_choices[["Aus Domestic T20 M"]]))) {
       clauses <- c(clauses, paste0("CAST(LEFT(season.name, 4) AS INT) >= 2011"))
     }
-    if (filters$series == "Aus Domestic T20 F") {
+    if (identical(as.character(filters$series), as.character(series_choices[["Aus Domestic T20 F"]]))) {
       clauses <- c(clauses, paste0("CAST(LEFT(season.name, 4) AS INT) >= 2015"))
     }
   }
@@ -87,9 +87,10 @@ build_filter_clause <- function(filters, player_id = NULL, definition = NULL, in
 }
 
 series_min_year <- function(series) {
-  if (identical(series, "Aus Domestic T20 M")) {
+  series_id <- as.character(series)
+  if (identical(series_id, as.character(series_choices[["Aus Domestic T20 M"]]))) {
     2011L
-  } else if (identical(series, "Aus Domestic T20 F")) {
+  } else if (identical(series_id, as.character(series_choices[["Aus Domestic T20 F"]]))) {
     2015L
   } else {
     NA_integer_

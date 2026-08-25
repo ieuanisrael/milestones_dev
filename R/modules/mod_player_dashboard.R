@@ -26,14 +26,12 @@ milestoneSnapshotLegend <- function() {
   season_copy <- if (isTRUE(season$in_season)) {
     paste0(
       "About ", remaining_pct, "% of the current season remains (~",
-      remaining_matches, " of ", SEASON_MATCHES,
-      " matches). Seasons run 1 September to 1 April."
+      remaining_matches, " matches). Seasons run 1 September to 1 April."
     )
   } else {
     paste0(
-      "The next season starts 1 September and ends 1 April (~",
-      SEASON_MATCHES,
-      " matches). Cards treat the upcoming season as fully remaining."
+      "The next season starts 1 September and ends 1 April. ",
+      "Cards treat the upcoming season as fully remaining."
     )
   }
 
