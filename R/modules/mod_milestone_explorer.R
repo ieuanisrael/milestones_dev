@@ -3,10 +3,10 @@
 
 milestoneExplorerUI <- function(id) {
   ns <- NS(id)
-  fluidRow(
-    conditionalFiltersUI(ns("milestone_conditional_filters")),
-
+  card(
     card_body(
+      conditionalFiltersUI(ns("milestone_conditional_filters")),
+      
       fluidRow(
         column(
           3,

@@ -56,7 +56,14 @@ conditionalFiltersUI <- function(id) {
           3,
           div(
             style = "display:flex;align-items:center;height:100%;min-height:72px;",
-            actionButton(ns("apply"), "Apply Filters", class = "btn-primary")
+            input_task_button(
+              id = ns("apply"), 
+              label = "Apply Filters", 
+              label_busy = "Filters Applied",
+              icon_busy = NULL, 
+              state = "busy",
+              type = "primary"
+            )
           )
         )
       ),
@@ -217,14 +224,17 @@ conditionalFiltersServer <- function(id) {
 
     observeEvent(input$series, {
       refresh_filters("series")
+      update_task_button(session = session, id = 'apply', state = "ready")
     })
 
     observeEvent(input$venue, {
       refresh_filters("venue")
+      update_task_button(session = session, id = 'apply', state = "ready")
     })
 
     observeEvent(input$team, {
       refresh_filters("team")
+      update_task_button(session = session, id = 'apply', state = "ready")
     })
 
     init_filters <- function() {
@@ -256,6 +266,7 @@ conditionalFiltersServer <- function(id) {
     initialised <- init_filters()
 
     filters <- eventReactive(c(initialised, input$apply), {
+      update_task_button(session = session, id = 'apply',state = "busy")
       list(
         series = input$series,
         venue = input$venue,

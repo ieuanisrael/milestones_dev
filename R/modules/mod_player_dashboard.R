@@ -62,11 +62,10 @@ milestoneSnapshotLegend <- function() {
 playerDashboardUI <- function(id) {
   ns <- NS(id)
 
-  fluidRow(
-
-    conditionalFiltersUI(ns("conditional_filters")),
-
+  card(
     card_body(
+      conditionalFiltersUI(ns("conditional_filters")),
+      
       pickerInput(
         ns("player"),
         "Player",
