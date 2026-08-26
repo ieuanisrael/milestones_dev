@@ -1,301 +1,230 @@
+# Email-oriented SQL builders. last_value is 1 for counts and hauls (one more
+# event) and the last innings contribution for cumulative sums.
 
+email_stat_sql <- function(definition, alias = "pi") {
+  col <- definition$value_column
+  if (grepl("+", col, fixed = TRUE)) {
+    parts <- trimws(strsplit(col, "+", fixed = TRUE)[[1]])
+    paste(paste0(alias, ".", parts), collapse = " + ")
+  } else {
+    paste0(alias, ".", col)
+  }
+}
+
+email_from_sql <- function() {
+  glue::glue(
+    "
+FROM {view}.[MatchPlayers] mp
+JOIN {view}.[PlayerInnings] pi
+  ON mp.match_id = pi.match_id AND mp.player_id = pi.player_id AND mp.match_count = 1
+JOIN {view}.Players p
+  ON p.player_id = pi.player_id
+JOIN {view}.Matches m
+  ON m.match_id = pi.match_id
+JOIN {view}.Teams team
+  ON pi.team_id = team.team_id
+JOIN {view}.Venues venue
+  ON m.venue_id = venue.venue_id
+JOIN {view}.Series series
+  ON m.series_id = series.series_id
+JOIN [GA20260618].Seasons season
+  ON m.season_id = season.season_id
+"
+  )
+}
 
 build_cumulative_query <- function(
     definition,
     player_id = NULL,
     filters) {
-  
-  agg_sql <- build_aggregation(
-    definition$aggregation,
-    "rr.stat_column"
-  )
-  
-  agg_select_sql <- build_select_aggregation(
-    definition$aggregation,
-    "rr.stat_column"
-  )
-  
-  progress <- build_step_progress(
+
+  stat_sql <- email_stat_sql(definition)
+  agg_sql <- if (identical(definition$aggregation, "count")) {
+    "COUNT(DISTINCT rr.stat_column)"
+  } else {
+    "SUM(rr.stat_column)"
+  }
+
+  series <- if (is.null(filters)) NULL else filters$series
+  progress <- build_threshold_progress(
     value_expr = agg_sql,
-    first_value = definition$first_value,
-    multiple = definition$multiple
+    thresholds = thresholds_for(definition$display_name, series)
   )
-  
-  filter_sql <- build_filter_clause(filters, player_id, definition) 
-  
-  glue::glue("
+
+  last_value_sql <- if (identical(definition$aggregation, "count")) {
+    "1"
+  } else {
+    "MAX(CASE WHEN rr.rn = 1 THEN rr.stat_column END)"
+  }
+  avg_value_sql <- if (identical(definition$aggregation, "count")) {
+    "1"
+  } else {
+    "AVG(CAST(rr.stat_column AS FLOAT))"
+  }
+
+  filter_sql <- build_filter_clause(filters, player_id, definition)
+  from_sql <- email_from_sql()
+
+  glue::glue(
+    "
 WITH RankedRows AS (
-    SELECT 
+    SELECT
         p.player_id,
         p.name,
-        pi.{definition$value_column} as stat_column,
+        {stat_sql} AS stat_column,
         m.match_date,
-        ROW_NUMBER() OVER (PARTITION BY mp.player_id ORDER BY match_date DESC) as rn
-    FROM [GA20260618].[MatchPlayers] mp
-
-    JOIN [GA20260618].[PlayerInnings] pi
-    ON mp.match_id = pi.match_id AND mp.player_id = pi.player_id and mp.match_count = 1
-    JOIN [GA20260618].Players p
-    ON p.player_id = pi.player_id
-    JOIN [GA20260618].Matches m
-    ON m.match_id = pi.match_id
-    JOIN [GA20260618].Teams team 
-    ON pi.team_id = team.team_id
-    JOIN [GA20260618].Venues venue 
-    ON m.venue_id = venue.venue_id
-    JOIN [GA20260618].Series series 
-    ON m.series_id = series.series_id
-    JOIN [GA20260618].Seasons season
-    ON m.season_id = season.season_id
-
+        ROW_NUMBER() OVER (PARTITION BY p.player_id ORDER BY m.match_date DESC) AS rn
+    {from_sql}
     {filter_sql}
-), lastRow AS (
-    SELECT 
-        player_id,
-        name,
-        stat_column,
-        match_date
-    FROM
-        RankedRows
-    WHERE
-        rn = 1
 )
-
-
 SELECT
-
     '{definition$display_name}' AS display_name,
-
     rr.player_id,
     rr.name,
-
-    max(lr.match_date) 
-      AS last_match_date,
-    
-    {agg_select_sql}
-    
-    {agg_sql}
-      AS current_value,
-
-    {progress$current_tier}
-      AS current_tier,
-
-    {progress$next_threshold}
-      AS next_threshold,
-
-    'cumulative'
-      AS milestone_type
-
-FROM RankedRows as rr
-JOIN lastRow as lr on lr.player_id = rr.player_id
-
+    MAX(rr.match_date) AS last_match_date,
+    {last_value_sql} AS last_value,
+    {avg_value_sql} AS avg_value,
+    {agg_sql} AS current_value,
+    {progress$current_tier} AS current_tier,
+    {progress$next_threshold} AS next_threshold,
+    'cumulative' AS milestone_type
+FROM RankedRows AS rr
 GROUP BY
     rr.player_id,
     rr.name
-
 ORDER BY
     current_value DESC
-             ")
+"
+  )
 }
-
 
 build_tiered_innings_query <- function(
     definition,
     player_id = NULL,
     filters = NULL
-){
-  
+) {
+  stat_sql <- email_stat_sql(definition)
   tier_case <- build_tier_case(
-    value_column = definition$value_column,
-    first_value = definition$first_value,
-    multiple = definition$multiple,
-    max_value = definition$max_value
+    value_column = "stat_column",
+    event_values = related_event_values(definition)
   )
-  
-  filter_sql <- build_filter_clause(filters, player_id, definition) 
-  
-  glue::glue("
 
-SELECT
+  series <- if (is.null(filters)) NULL else filters$series
+  progress <- build_threshold_progress(
+    value_expr = "COUNT(*)",
+    thresholds = thresholds_for(definition$display_name, series)
+  )
 
-  CONCAT(
-    '{definition$display_name} - ',
-    current_tier
-  ) AS display_name,
+  filter_sql <- build_filter_clause(filters, player_id, definition)
+  from_sql <- email_from_sql()
+  event_value <- event_cutoff(definition)
 
-  player_id,
-  name,
-  max(match_date) AS last_match_date,
-  1 as last_value,
-  1 as avg_value,
-  COUNT(*) AS current_value,
-
-  FLOOR(COUNT(*) / 50.0) * 50
-      AS current_tier,
-
-  FLOOR(COUNT(*) / 50.0) * 50 + 50
-    AS next_threshold,
-
-  'tiered_innings'
-    AS milestone_type
-
-FROM (
-
+  glue::glue(
+    "
+WITH events AS (
     SELECT
-
       p.player_id,
       p.name,
       m.match_date,
-      {tier_case} as current_tier
-
-    FROM {view}.[MatchPlayers] mp
-
-    JOIN {view}.[PlayerInnings] pi
-      ON mp.match_id = pi.match_id AND mp.player_id = pi.player_id and mp.match_count = 1
-    JOIN {view}.Players p
-      ON pi.player_id = p.player_id
-    JOIN {view}.Matches m
-      ON m.match_id = pi.match_id
-    JOIN {view}.Teams team 
-      ON pi.team_id = team.team_id
-    JOIN {view}.Venues venue 
-      ON m.venue_id = venue.venue_id
-    JOIN {view}.Series series 
-      ON m.series_id = series.series_id
-    JOIN [GA20260618].Seasons season
-      ON m.season_id = season.season_id
-
+      {stat_sql} AS stat_column,
+      {tier_case}
+    {from_sql}
     {filter_sql}
-
-) x
-
-GROUP BY
-
+)
+SELECT
+  '{definition$display_name}' AS display_name,
   player_id,
   name,
-  current_tier
-  
+  MAX(match_date) AS last_match_date,
+  1 AS last_value,
+  CAST(COUNT(*) AS FLOAT) / NULLIF(COUNT(*), 0) AS avg_value,
+  COUNT(*) AS current_value,
+  {progress$current_tier} AS current_tier,
+  {progress$next_threshold} AS next_threshold,
+  'tiered_innings' AS milestone_type
+FROM events
+WHERE current_tier = {event_value}
+GROUP BY
+  player_id,
+  name
 ORDER BY
   current_value DESC
-
-")
-  
+"
+  )
 }
 
 build_tiered_match_query <- function(
     definition,
     player_id = NULL,
     filters = NULL
-){
-  
+) {
+  stat_sql <- email_stat_sql(definition)
   tier_case <- build_tier_case(
     value_column = "match_value",
-    first_value = definition$first_value,
-    multiple = definition$multiple,
-    max_value = definition$max_value
+    event_values = related_event_values(definition)
   )
-  
-  filter_sql <- build_filter_clause(filters, player_id, definition) 
-  
-  glue::glue("
 
+  series <- if (is.null(filters)) NULL else filters$series
+  progress <- build_threshold_progress(
+    value_expr = "COUNT(*)",
+    thresholds = thresholds_for(definition$display_name, series)
+  )
+
+  filter_sql <- build_filter_clause(filters, player_id, definition)
+  from_sql <- email_from_sql()
+  event_value <- event_cutoff(definition)
+
+  glue::glue(
+    "
 WITH match_summary AS (
-
     SELECT
-
       p.player_id,
       p.name,
-
       pi.match_id,
-      max(m.match_date) as match_date,
-      SUM(pi.{definition$value_column})
-        AS match_value
-
-    FROM {view}.[MatchPlayers] mp
-
-    JOIN {view}.[PlayerInnings] pi
-      ON mp.match_id = pi.match_id AND mp.player_id = pi.player_id and mp.match_count = 1
-    JOIN {view}.Players p
-      ON p.player_id = pi.player_id
-    JOIN {view}.Matches m
-      ON m.match_id = pi.match_id
-    JOIN {view}.Teams team 
-      ON pi.team_id = team.team_id
-    JOIN {view}.Venues venue 
-      ON m.venue_id = venue.venue_id
-    JOIN {view}.Series series 
-      ON m.series_id = series.series_id
-    JOIN [GA20260618].Seasons season
-      ON m.season_id = season.season_id
-
+      MAX(m.match_date) AS match_date,
+      SUM({stat_sql}) AS match_value
+    {from_sql}
     {filter_sql}
-    
     GROUP BY
-
       p.player_id,
       p.name,
       pi.match_id
-
-)
-
-SELECT
-
-    CONCAT(
-      '{definition$display_name} - ',
-      current_tier
-    ) AS display_name,
-
-    player_id,
-    name,
-    max(match_date) as last_match_date,
-    1 as last_value,
-    1 as avg_value,
-    COUNT(*) AS current_value,
-
-    FLOOR(COUNT(*) / 50.0) * 50
-      AS current_tier,
-
-    FLOOR(COUNT(*) / 50.0) * 50 + 50
-      AS next_threshold,
-
-    'tiered_match'
-      AS milestone_type
-
-FROM (
-
+),
+events AS (
     SELECT
-
       player_id,
       name,
       match_date,
-      {tier_case} as current_tier
-
+      match_value,
+      {tier_case}
     FROM match_summary
-
-) x
-
-WHERE current_tier IS NOT NULL
-
+)
+SELECT
+    '{definition$display_name}' AS display_name,
+    player_id,
+    name,
+    MAX(match_date) AS last_match_date,
+    1 AS last_value,
+    CAST(COUNT(*) AS FLOAT) / NULLIF(COUNT(*), 0) AS avg_value,
+    COUNT(*) AS current_value,
+    {progress$current_tier} AS current_tier,
+    {progress$next_threshold} AS next_threshold,
+    'tiered_match' AS milestone_type
+FROM events
+WHERE current_tier = {event_value}
 GROUP BY
-
   player_id,
-  name,
-  current_tier
-
+  name
 ORDER BY
   current_value DESC
-
-")
-
+"
+  )
 }
 
 query_builders <- list(
   cumulative = build_cumulative_query,
   tiered_innings = build_tiered_innings_query,
   tiered_match = build_tiered_match_query
-  # fixed_innings = build_fixed_query,
-  # fixed_match = build_fixed_match_query
-  # special = build_special_query
 )
 
 build_query <- function(
@@ -303,18 +232,12 @@ build_query <- function(
     player_id = NULL,
     filters = NULL
 ) {
-  
   builder <- query_builders[[definition$query_strategy]]
-  
+
   if (is.null(builder)) {
-    stop(
-      paste(
-        "Unknown query strategy:",
-        definition$query_strategy
-      )
-    )
+    stop(paste("Unknown query strategy:", definition$query_strategy))
   }
-  
+
   builder(
     definition = definition,
     player_id = player_id,

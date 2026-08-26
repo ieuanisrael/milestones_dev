@@ -30,6 +30,7 @@ source("./R/database/lookups.R")
 source("./R/database/local_data.R")
 source("./R/milestone_functions/milestone_helpers.R")
 source("./R/milestone_functions/query_builders.R")
+source("./email/email_query_builder.R")
 
 enabled <- milestones_for_series(filters$series)
 
