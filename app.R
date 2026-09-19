@@ -9,6 +9,7 @@ library(tidyverse)
 library(glue)
 library(DBI)
 library(odbc)
+library(DT)
 
 Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
 
@@ -54,8 +55,10 @@ ui <- page_navbar(
 )
 
 server <- function(input, output, session) {
-  playerDashboardServer("player")
-  milestoneExplorerServer("explorer")
+  con <- get_db_connection()
+  
+  playerDashboardServer("player", con = con)
+  milestoneExplorerServer("explorer", con = con)
 }
 
 options(shiny.launch.browser = TRUE)

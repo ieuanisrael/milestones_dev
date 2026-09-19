@@ -84,9 +84,8 @@ conditionalFiltersUI <- function(id) {
   )
 }
 
-conditionalFiltersServer <- function(id) {
+conditionalFiltersServer <- function(id, con) {
   moduleServer(id, function(input, output, session) {
-    conn <- get_db_connection()
 
     output$filter_legend <- renderUI({
       series <- input$series
@@ -105,7 +104,7 @@ conditionalFiltersServer <- function(id) {
 
       min_year <- get_min_season_year(
         filters = list(series = series, venue = venue, team = team),
-        conn = conn
+        conn = con
       )
 
       date_text <- tagList(
@@ -217,7 +216,7 @@ conditionalFiltersServer <- function(id) {
           filters = filter_args[names(filter_args) != filter_name],
           current_value = current[[filter_name]],
           session = session,
-          conn = conn
+          conn = con
         )
       }
     }
@@ -242,7 +241,7 @@ conditionalFiltersServer <- function(id) {
         "series",
         filters = NULL,
         session = session,
-        conn = conn,
+        conn = con,
         current_value = all_id
       )
 
@@ -250,7 +249,7 @@ conditionalFiltersServer <- function(id) {
         "venue",
         filters = NULL,
         session = session,
-        conn = conn,
+        conn = con,
         current_value = all_id
       )
 
@@ -258,7 +257,7 @@ conditionalFiltersServer <- function(id) {
         "team",
         filters = NULL,
         session = session,
-        conn = conn,
+        conn = con,
         current_value = all_id
       )
     }

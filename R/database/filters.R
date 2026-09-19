@@ -105,7 +105,7 @@ series_date_range_label <- function(series, min_year = NULL) {
   }
 
   if (!is.null(year) && length(year) == 1 && !is.na(year)) {
-    paste0("Min year: ", year)
+    p("Min year: ", strong(year))
   } else {
     "Min year: all available seasons"
   }

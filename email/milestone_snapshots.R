@@ -2,12 +2,15 @@ library(glue)
 library(lubridate)
 library(dplyr)
 
+Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
+
 if (!file.exists("app.R")) {
   stop("Run this script from the milestones_dev project root.")
 }
 
-team <- "NSW Blues M"
+team <- "'NSW Blues M'"
 series <- 4
+series_name <- "Aus Domestic OD M"
 season <- "2025-26"
 
 source("./R/config/milestone_def.R")
@@ -20,7 +23,7 @@ if (file.exists("./R/config/constants.R")) {
 
 filters <- list(
   series = series,
-  venue = all_id,
+  venue = NULL,
   team = NULL
 )
 
@@ -30,7 +33,9 @@ source("./R/database/lookups.R")
 source("./R/database/local_data.R")
 source("./R/milestone_functions/milestone_helpers.R")
 source("./R/milestone_functions/query_builders.R")
-source("./email/email_query_builder.R")
+
+# source("./email/email_milestone_helpers.R")
+# source("./email/email_query_builder.R")
 
 enabled <- milestones_for_series(filters$series)
 
@@ -64,6 +69,7 @@ results <- purrr::map_df(seq_len(nrow(enabled)), function(i) {
 
   tibble::tibble(
     display_name = res$display_name,
+    last_match_date = res$latest_match_date,
     display_name_ui = definition$display_name_ui,
     current_value = current_value,
     threshold_value = progress$current_tier,
@@ -71,7 +77,7 @@ results <- purrr::map_df(seq_len(nrow(enabled)), function(i) {
     progress_pct = state$progress_pct,
     next_target = progress$next_threshold,
     last_match_date = res$last_match_date,
-    last_value = res$last_value,
+    last_value = ifelse(is.null(res$last_value), 1, res$last_value),
     avg_value = res$avg_value,
     player = res$name,
     milestone_achieved = current_value - last_value < progress$current_tier,

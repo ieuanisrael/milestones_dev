@@ -83,5 +83,3 @@ safe_db_connect <- function() {
     }
   )
 }
-
-con <- get_db_connection()

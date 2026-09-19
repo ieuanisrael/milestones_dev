@@ -88,7 +88,8 @@ build_tiered_innings_query <- function(definition, player_id = NULL, filters = N
 WITH match_counts AS (
     SELECT
       p.player_id,
-      COUNT(DISTINCT pi.match_id) AS n_matches
+      COUNT(DISTINCT pi.match_id) AS n_matches,
+      MAX(m.match_date) AS latest_match_date
     {from_sql}
     {career_filter_sql}
     GROUP BY
@@ -100,6 +101,7 @@ SELECT
   x.name,
   COUNT(*) AS current_value,
   mc.n_matches,
+  mc.latest_match_date,
   CAST(COUNT(*) AS FLOAT) / NULLIF(mc.n_matches, 0) AS avg_value,
   {progress$current_tier} AS current_tier,
   {progress$next_threshold} AS next_threshold,
@@ -118,7 +120,8 @@ WHERE current_tier = {event_value}
 GROUP BY
   x.player_id,
   x.name,
-  mc.n_matches
+  mc.n_matches,
+  mc.latest_match_date
 ORDER BY
   current_value DESC
 "
@@ -152,7 +155,8 @@ build_tiered_match_query <- function(definition, player_id = NULL, filters = NUL
 WITH match_counts AS (
     SELECT
       p.player_id,
-      COUNT(DISTINCT pi.match_id) AS n_matches
+      COUNT(DISTINCT pi.match_id) AS n_matches,
+      MAX(m.match_date) AS latest_match_date
     {from_sql}
     {career_filter_sql}
     GROUP BY
@@ -177,6 +181,7 @@ SELECT
     x.name,
     COUNT(*) AS current_value,
     mc.n_matches,
+    mc.latest_match_date,
     CAST(COUNT(*) AS FLOAT) / NULLIF(mc.n_matches, 0) AS avg_value,
     {progress$current_tier} AS current_tier,
     {progress$next_threshold} AS next_threshold,
@@ -194,7 +199,8 @@ WHERE current_tier = {event_value}
 GROUP BY
   x.player_id,
   x.name,
-  mc.n_matches
+  mc.n_matches,
+  mc.latest_match_date
 ORDER BY
   current_value DESC
 "

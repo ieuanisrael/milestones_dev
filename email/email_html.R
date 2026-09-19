@@ -8,8 +8,8 @@ library(lubridate)
 # Data preparation
 # -------------------------------
 
-milestone_achieved <- results %>%
-  filter(milestone_achieved, player %in% team_list$name)
+last_match_milestones <- results %>%
+  filter(milestone_achieved, player %in% team_list$name, last_match_date > as.Date("2026-01-01"))
 
 milestone_threshold <- results %>%
   filter(within_threshold, player %in% team_list$name)
@@ -23,12 +23,8 @@ top_10_thresholds <- results %>%
   ) %>%
   filter(within_top_10, player %in% team_list$name)
 
-single_performance_milestones <- results %>%
-  filter(
-    str_detect(display_name, "50s|Centuries|150s|200s|250s|Haul|Dismissals|Carried|Tiers|Innings|Match"),
-    last_match_date > as.Date("2026-01-01"),
-    player %in% team_list$name
-  )
+current_season_milestones <- results %>%
+  filter(milestone_achieved, player %in% team_list$name, last_match_date > as.Date("2025-01-01"))
 
 # -------------------------------
 # Helper function
@@ -217,12 +213,12 @@ email_html <- tagList(
       class = "hero", 
       tags$div(
         class = "hero-title",
-        glue("NSW Blues Men's {series} Milestone Report")
+        glue("NSW Blues Men's Milestones")
       ),
       
       tags$div(
         class = "hero-subtitle",
-        paste("Performance Analysis Update |", Sys.Date())
+        glue("{series_name} | {Sys.Date()} | Performance Analysis")
       )
     ),
     
@@ -243,22 +239,7 @@ email_html <- tagList(
               class = "summary-box",
               div(
                 class = "summary-number",
-                nrow(milestone_achieved)
-              ),
-              div(
-                class = "summary-label",
-                "Milestones Achieved"
-              )
-            )
-          ),
-          
-          tags$td(
-            width = "25%",
-            div(
-              class = "summary-box",
-              div(
-                class = "summary-number",
-                nrow(single_performance_milestones)
+                nrow(last_match_milestones)
               ),
               div(
                 class = "summary-label",
@@ -288,14 +269,30 @@ email_html <- tagList(
               class = "summary-box",
               div(
                 class = "summary-number",
-                nrow(top_10_thresholds)
+                nrow(current_season_milestones)
               ),
               div(
                 class = "summary-label",
-                "Top 10 Watch"
+                "Current Season"
               )
             )
-          )
+          ),
+          if("T20" %in% series_name) {
+            tags$td(
+              width = "25%",
+              div(
+                class = "summary-box",
+                div(
+                  class = "summary-number",
+                  nrow(top_10_thresholds)
+                ),
+                div(
+                  class = "summary-label",
+                  "Top 10 Watch"
+                )
+              )
+            )
+          }
         )
       )
     ),
@@ -307,11 +304,11 @@ email_html <- tagList(
       
       div(
         class = "section-title",
-        "Milestones Achieved"
+        "Last Match Milestones"
       ),
       
       create_cards(
-        milestone_achieved,
+        last_match_milestones,
         function(x) {
           glue("
           <strong>{x$player}</strong> has passed the milestone
@@ -322,31 +319,6 @@ email_html <- tagList(
         ")
         },
         "#28a745"
-      ),
-    ),
-    
-    # LAST MATCH SECTION ----------------------
-    
-    div(
-      class = "section",
-      
-      div(
-        class = "section-title",
-        "Last Match Performances"
-      ),
-      
-      create_cards(
-        single_performance_milestones,
-        function(x) {
-          glue("
-          <strong>{x$player}</strong> achieved
-          <strong>{last_match_performance_label(x)}</strong>
-          on {as_date(x$last_match_date)}.
-          <br>
-          Career Total: <strong>{x$current_value}</strong>
-        ")
-        },
-        "#9c27b0"
       ),
     ),
     
@@ -375,41 +347,81 @@ email_html <- tagList(
       ),
     ),
     
-    # TOP 10 SECTION --------------------------
+    # LAST MATCH SECTION ----------------------
     
     div(
       class = "section",
       
       div(
         class = "section-title",
-        "Top 10 Watch"
+        "Current Season Milestones"
       ),
       
       create_cards(
-        top_10_thresholds,
+        current_season_milestones,
         function(x) {
           glue("
+          <strong>{x$player}</strong> achieved
+          <strong>{last_match_performance_label(x)}</strong>
+          on {as_date(x$last_match_date)}.
+          <br>
+          Career Total: <strong>{x$current_value}</strong>
+        ")
+        },
+        "#9c27b0"
+      ),
+    ),
+    
+    # TOP 10 SECTION --------------------------
+    
+    if("T20" %in% series_name) {
+      div(
+        div( 
+          class = "section",
+          
+          div(
+            class = "section-title",
+            "Top 10 Watch"
+          ),
+          
+          create_cards(
+            top_10_thresholds,
+            function(x) {
+              glue("
           <strong>{x$player}</strong>
           is currently ranked <strong>#{x$rank}</strong>
           for <strong>{x$display_name_ui}</strong>.
           <br>
           Current Total: <strong>{x$current_value}</strong>
         ")
-        },
-        "#0078D4"
-      ),
-      
-    ),
+            },
+            "#0078D4"
+          ),
+          
+        ),
+        div(
+          class = "footer",
+          
+          strong("NSW Blues Men's Program"),
+          br(),
+          "Cricket NSW | Performance Analysis",
+          br(),
+          "Automated Milestone Monitoring Report"
+        )
+      )
+    } else {
+      div(
+        class = "footer",
+        
+        strong("NSW Blues Men's Program"),
+        br(),
+        "Cricket NSW | Performance Analysis",
+        br(),
+        "Automated Milestone Monitoring Report"
+      )
+    }
     
-    div(
-      class = "footer",
-      
-      strong("NSW Blues Men's Program"),
-      br(),
-      "Cricket NSW | Performance Analysis",
-      br(),
-      "Automated Milestone Monitoring Report"
-    )
+    
   )
 )
 

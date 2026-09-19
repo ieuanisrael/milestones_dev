@@ -2,12 +2,21 @@
 # This module lets the user pick a milestone definition and view its leaderboard.
 
 milestoneExplorerUI <- function(id) {
+  
   ns <- NS(id)
   card(
     card_body(
       conditionalFiltersUI(ns("milestone_conditional_filters")),
       
       fluidRow(
+        column(
+          width = 12,
+          uiOutput(ns('warningText'))
+        )
+      ),
+      
+      fluidRow(
+        
         column(
           3,
           radioButtons(
@@ -19,16 +28,63 @@ milestoneExplorerUI <- function(id) {
         ),
         column(
           9,
-          DT::DTOutput(ns("leaderboard")) %>% withSpinner()
+          dataTableOutput(ns("tab")) %>% withSpinner()
         )
       )
     )
   )
 }
 
-milestoneExplorerServer <- function(id) {
+milestoneExplorerServer <- function(id, con) {
   moduleServer(id, function(input, output, session) {
-    filters <- conditionalFiltersServer("milestone_conditional_filters")
+    
+    filters <- conditionalFiltersServer("milestone_conditional_filters", con = con)
+    
+    observeEvent(filters, {
+      output$warningText <- renderUI({
+        min_year <- get_min_season_year(
+          filters = list(series = filters()$series, venue = filters()$venue, team = filters()$team),
+          conn = con
+        )
+        if (!(stringr::str_detect(filters()$series, "T20"))) {
+          tags$div(
+            tags$div(
+            class = "alert alert-danger d-flex align-items-center",
+            role = "alert",
+            style = "padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);",
+            
+            # Message body
+            tags$div(
+              glue("Data only available from {min_year}")
+            )
+          ),
+          
+          tags$div(
+            style = "background-color:#fff2cc; padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);",
+            
+            # Message body
+            tags$div(
+              glue("Highlighted rows denote NSW contracted players")
+            )
+          )
+          )
+          
+        } else {
+          tags$div(
+            tags$div(
+              style = "background-color:#fff2cc; padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px  rgba(0,0,0,0.05);",
+              
+              # Message body
+              tags$div(
+                glue("Highlighted rows denote NSW contracted players")
+              )
+            )
+          )
+        }
+        
+      })
+    })
+    
 
     observeEvent(filters(), {
       enabled <- milestones_for_series(filters()$series)
@@ -57,7 +113,7 @@ milestoneExplorerServer <- function(id) {
     leaderboard_data <- reactive({
       definition <- selected_definition()
       req(nrow(definition) == 1)
-
+      
       get_milestone_leaderboard(
         new_display_name = definition$display_name,
         definition = definition,
@@ -65,14 +121,39 @@ milestoneExplorerServer <- function(id) {
       )
     })
 
-    output$leaderboard <- DT::renderDT(
+    output$tab <- renderDataTable(
       {
-        leaderboard_data()
-      },
-      options = list(
-        scrollY = "500px",
-        paging = FALSE
-      )
-    )
+        req(filters()$series)
+        
+        series_teams <- list(
+          "3" = "'NSW Blues M'",
+          "4" = "'NSW Blues M'",
+          "690007" = "'NSW Breakers F'",
+          "950002" = "'Sydney Sixers M', 'Sydney Thunder M'",
+          "220008" = "'Sydney Sixers M', 'Sydney Thunder M'"
+        )
+        
+        query <- get_players_query(series_teams[[filters()$series]], filters()$series, "2025-26")
+
+        team_list <- tryCatch(
+          QueryDBFunction(con = con, query = query),
+          error = function(e) NULL
+        )
+        
+        datatable(
+          leaderboard_data(),
+          style = "default"
+        ) %>%
+          formatStyle(
+            'Player',
+            target = 'row',
+            backgroundColor = styleEqual(
+              team_list$name, # The exact names to look for
+              rep('#fff2cc', length(team_list$name)),  # Highlights matches in light yellow
+              default = '#ffffff'
+            )
+          )
+      }
+    ) 
   })
 }

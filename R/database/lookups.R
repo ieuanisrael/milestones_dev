@@ -8,8 +8,8 @@ get_players_query <- function(team, series, season) {
           JOIN [GA20260618].Series series ON m.series_id = series.series_id
           JOIN [GA20260618].Seasons season ON m.season_id = season.season_id
           where 
-            team.team_name = '{team}' AND 
-            series.name = '{series}' AND 
+            team.team_name in ({team}) AND 
+            series.series_id = '{series}' AND 
             season.name = '{season}'
           ORDER BY p.name"
   )

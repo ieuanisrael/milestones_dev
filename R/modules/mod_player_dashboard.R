@@ -78,13 +78,13 @@ playerDashboardUI <- function(id) {
       navset_tab(
         id = ns("player_views"),
         nav_panel(
-          "Milestone Snapshot",
+          "Milestone View",
           milestoneSnapshotLegend(),
           uiOutput(ns("milestone_cards")) %>%
             withSpinner(proxy.height = "400px", color.background = "gray")
         ),
         nav_panel(
-          "Progress Tracker",
+          "Table View",
           DT::DTOutput(ns("progress_table")) %>% withSpinner()
         )
       )
@@ -92,14 +92,13 @@ playerDashboardUI <- function(id) {
   )
 }
 
-playerDashboardServer <- function(id) {
+playerDashboardServer <- function(id, con) {
   moduleServer(id, function(input, output, session) {
-    conn <- get_db_connection()
 
-    filters <- conditionalFiltersServer("conditional_filters")
+    filters <- conditionalFiltersServer("conditional_filters", con = con)
 
     players <- reactive({
-      get_players(filters = filters(), conn = conn)
+      get_players(filters = filters(), conn = con)
     })
 
     observe({

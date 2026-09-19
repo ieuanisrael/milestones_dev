@@ -1,31 +1,19 @@
-build_tier_case <- function(
-    value_column,
-    first_value,
-    multiple,
-    max_value = 500
-){
-  
-  if (is.na(multiple) || multiple == 0) {
-    tiers <- first_value
-  } else {
-    tiers <- seq(
-      first_value,
-      max_value,
-      by = multiple
-    )
+build_tier_case <- function(value_column, event_values) {
+  tiers <- sort(unique(as.numeric(event_values)))
+  tiers <- tiers[!is.na(tiers)]
+  if (length(tiers) == 0) {
+    stop("No event values supplied for tier case")
   }
   
   case_lines <- purrr::map_chr(
     rev(tiers),
-    ~ glue::glue(
-      "WHEN {value_column} >= {.x} THEN {.x}"
-    )
+    ~ glue::glue("WHEN {value_column} >= {.x} THEN {.x}")
   )
   
   paste0(
     "CASE\n",
     paste(case_lines, collapse = "\n"),
-    "\nEND"
+    "\nEND AS current_tier"
   )
 }
 
