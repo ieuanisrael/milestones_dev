@@ -142,6 +142,8 @@ milestoneExplorerServer <- function(id, con, internal_con) {
           WHERE
             team_id = {series_teams[[filters()$series]]} AND season = {this_year}"
         )
+        
+        query %>% print
 
         team_list <- tryCatch(
           QueryDBFunction(con = internal_con, query = query),
