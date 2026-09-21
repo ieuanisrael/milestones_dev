@@ -1,15 +1,11 @@
 library(tidyverse)
 
-query <- "SELECT [season]
-      ,[first_name]
-      ,[surname]
-      ,[expiry]
-      ,[team_id]
-      ,[replaced_player_id]
-      ,[ams_id]
-  FROM [elite].[LISTS_contract_lists]
-  WHERE season = '2025-26' AND
-  team_id = '3'"
+query <- "SELECT 
+  [ams_id]
+FROM 
+  [elite].[LISTS_contract_lists]
+WHERE
+  team_id = 3 AND season = 2025-26"
 
 #' Create a connection to the internal database via Ludis
 #' 
