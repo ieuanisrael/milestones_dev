@@ -1,3 +1,10 @@
+shiny
+bslib
+shinycssloaders
+shinyWidgets
+tidyverse
+glue
 DBI
 odbc
+DT
 AzureAuth
