@@ -20,10 +20,6 @@ get_min_season_year <- function(filters = NULL, conn = NULL) {
     return(local_get_min_season_year(filters))
   }
 
-  if (!db_is_available(conn)) {
-    return(series_min_year(if (is.null(filters)) NULL else filters$series))
-  }
-
   where_clause <- build_filter_clause(filters)
 
   query <- glue::glue("
@@ -47,10 +43,6 @@ get_min_season_year <- function(filters = NULL, conn = NULL) {
 get_formats <- function(filters = NULL, conn = NULL) {
   if (is_local_data()) {
     return(local_get_formats(filters))
-  }
-
-  if (!db_is_available(conn)) {
-    return(character())
   }
   
   where_clause <- build_filter_clause(filters)
@@ -86,9 +78,6 @@ get_formats <- function(filters = NULL, conn = NULL) {
 }
 
 get_series <- function(filters = NULL, conn = NULL) {
-  # if (!db_is_available(conn)) {
-  #   return(character())
-  # }
   # 
   # where_clause <- build_filter_clause(filters)
   # 
@@ -111,10 +100,6 @@ get_series <- function(filters = NULL, conn = NULL) {
 get_venues <- function(filters = NULL, conn = NULL) {
   if (is_local_data()) {
     return(local_get_venues(filters))
-  }
-
-  if (!db_is_available(conn)) {
-    return(character())
   }
   
   where_clause <- build_filter_clause(filters)
@@ -150,10 +135,6 @@ get_teams <- function(filters = NULL, conn = NULL) {
   if (is_local_data()) {
     return(local_get_teams(filters))
   }
-
-  if (!db_is_available(conn)) {
-    return(character())
-  }
   
   where_clause <- build_filter_clause(filters)
   
@@ -188,10 +169,6 @@ get_teams <- function(filters = NULL, conn = NULL) {
 get_players <- function(filters = NULL, conn = NULL) {
   if (is_local_data()) {
     return(local_get_players(filters))
-  }
-
-  if (!db_is_available(conn)) {
-    return(character())
   }
   
   where_clause <- build_filter_clause(filters)
