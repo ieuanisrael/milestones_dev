@@ -57,10 +57,4 @@ get_connection_internal_ludis <- function() {
 
 internal_con <- get_connection_internal_ludis()
 
-
-team_list <- tryCatch(
-          QueryDBFunction(con = internal_con, query = query),
-          error = function(e) NULL
-        )
-        
-team_list %>% glimpse
+print(internal_con)
