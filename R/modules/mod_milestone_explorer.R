@@ -126,21 +126,13 @@ milestoneExplorerServer <- function(id, con, internal_con) {
       {
         req(filters()$series)
         
-        series_teams <- list(
-          "3" = "'NSW Blues M'",
-          "4" = "'NSW Blues M'",
-          "690007" = "'NSW Breakers F'",
-          "950002" = "'Sydney Sixers M', 'Sydney Thunder M'",
-          "220008" = "'Sydney Sixers M', 'Sydney Thunder M'"
-        )
-        
         query <- glue(
           "SELECT 
             [ams_id]
           FROM 
             [elite].[LISTS_contract_lists]
           WHERE
-            team_id = {series_teams[[filters()$series]]} AND season = {this_year}"
+            team_id = {filters()$series} AND season = {this_year}"
         )
         
         query %>% print
@@ -151,7 +143,6 @@ milestoneExplorerServer <- function(id, con, internal_con) {
         )
         
         team_list %>% glimpse
-        leaderboard_data() %>% glimpse
         
         datatable(
           leaderboard_data(),
