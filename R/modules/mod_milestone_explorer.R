@@ -125,24 +125,8 @@ milestoneExplorerServer <- function(id, con, internal_con) {
     output$tab <- renderDataTable(
       {
         req(filters()$series)
-        
-        query <- glue(
-          "SELECT 
-            [ams_id]
-          FROM 
-            [elite].[LISTS_contract_lists]
-          WHERE
-            team_id = '{filters()$series}' AND season = '{this_year}'"
-        )
-        
-        query %>% print
 
-        team_list <- tryCatch(
-          QueryDBFunction(con = internal_con, query = query),
-          error = function(e) NULL
-        )
-        
-        team_list %>% glimpse
+        team_list <- data.frame(ams_id = '')
         
         datatable(
           leaderboard_data(),
