@@ -7,3 +7,4 @@ glue
 DBI
 odbc
 DT
+AzureAuth
