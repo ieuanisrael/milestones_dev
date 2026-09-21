@@ -17,7 +17,7 @@ get_connection_internal_ludis <- function() {
   AUTHORITY_HOST_URL <- "https://login.microsoftonline.com"
   SQL_SERVER_SCOPE <- "https://database.windows.net/.default"
   
-  app_id <- Sys.getenv("app_internal")
+  app_id <- Sys.getenv("app_id_internal")
   secret <- Sys.getenv("secret_internal")
   
   # Internal database parameters (from your Python code)
@@ -57,6 +57,25 @@ get_connection_internal_ludis <- function() {
   return(con)
 }
 
+QueryDBFunction <- function(con, query, query_param = NULL) {
+  if (is.null(con) || inherits(con, "local_sample_connection") || !DBI::dbIsValid(con)) {
+    return(tibble::tibble())
+  }
+
+  query_stmt <- DBI::dbSendQuery(con, query)
+  on.exit(DBI::dbClearResult(query_stmt))
+
+  if (!is.null(query_param)) {
+    DBI::dbBind(query_stmt, list(query_param))
+  }
+
+  df <- DBI::dbFetch(query_stmt)
+  return(df)
+}
+
+
 internal_con <- get_connection_internal_ludis()
 
-print(internal_con)
+res <- QueryDBFunction(internal_con, query)
+
+res %>% glimpse
