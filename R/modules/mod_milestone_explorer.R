@@ -35,7 +35,7 @@ milestoneExplorerUI <- function(id) {
   )
 }
 
-milestoneExplorerServer <- function(id, con) {
+milestoneExplorerServer <- function(id, con, internal_con) {
   moduleServer(id, function(input, output, session) {
     
     filters <- conditionalFiltersServer("milestone_conditional_filters", con = con)
