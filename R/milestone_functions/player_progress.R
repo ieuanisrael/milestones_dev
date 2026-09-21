@@ -1,14 +1,15 @@
 # Player progress helpers.
 # These functions assemble milestone progress summaries for a selected player.
 
-get_player_progress <- function(player_id, filters = NULL) {
-  get_player_milestone_summary(player_id = player_id, filters = filters)
+get_player_progress <- function(player_id, filters = NULL, con = NULL) {
+  get_player_milestone_summary(player_id = player_id, filters = filters, con = con)
 }
 
 get_player_milestone_summary <- function(
   player_id,
   filters = NULL,
-  milestone_definitions = NULL
+  milestone_definitions = NULL,
+  con = con
 ) {
   if (is.null(player_id) || !nzchar(as.character(player_id))) {
     return(tibble::tibble())
@@ -30,7 +31,8 @@ get_player_milestone_summary <- function(
       execute_milestone_query(
         definition = definition,
         player_id = player_id,
-        filters = filters
+        filters = filters,
+        con = con
       ),
       error = function(e) NULL
     )

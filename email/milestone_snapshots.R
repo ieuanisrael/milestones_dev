@@ -45,7 +45,8 @@ results <- purrr::map_df(seq_len(nrow(enabled)), function(i) {
   res <- tryCatch(
     execute_milestone_query(
       definition = definition,
-      filters = filters
+      filters = filters,
+      con = con
     ),
     error = function(e) NULL
   )

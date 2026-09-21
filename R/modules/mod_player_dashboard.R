@@ -133,7 +133,8 @@ playerDashboardServer <- function(id, con) {
 
       get_player_progress(
         player_id = input$player,
-        filters = filters()
+        filters = filters(),
+        con = con
       )
     })
 

@@ -117,7 +117,8 @@ milestoneExplorerServer <- function(id, con) {
       get_milestone_leaderboard(
         new_display_name = definition$display_name,
         definition = definition,
-        filters = filters()
+        filters = filters(),
+        con = con
       )
     })
 

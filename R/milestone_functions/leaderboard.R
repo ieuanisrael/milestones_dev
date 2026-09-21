@@ -1,7 +1,7 @@
 # Leaderboard helper for milestone explorer views.
 # This function runs the milestone query and returns a compact leaderboard table.
 
-get_milestone_leaderboard <- function(new_display_name, definition, filters = NULL) {
+get_milestone_leaderboard <- function(new_display_name, definition, filters = NULL, con = NULL) {
   if (!db_is_available()) {
     return(tibble())
   }
@@ -9,7 +9,8 @@ get_milestone_leaderboard <- function(new_display_name, definition, filters = NU
   res <- tryCatch(
     execute_milestone_query(
       definition = definition,
-      filters = filters
+      filters = filters,
+      con = con
     ),
     error = function(e) NULL
   )

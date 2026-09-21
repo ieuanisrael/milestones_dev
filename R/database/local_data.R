@@ -259,13 +259,13 @@ local_milestone_query <- function(definition, player_id = NULL, filters = NULL) 
     dplyr::arrange(dplyr::desc(.data$current_value))
 }
 
-execute_milestone_query <- function(definition, player_id = NULL, filters = NULL) {
+execute_milestone_query <- function(definition, player_id = NULL, filters = NULL, con = NULL) {
   if (is_local_data()) {
     return(local_milestone_query(definition, player_id, filters))
   }
 
   QueryDBFunction(
-    con = get_connection_ludis(),
+    con = con,
     query = build_query(
       definition = definition,
       player_id = player_id,
