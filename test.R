@@ -41,6 +41,8 @@ get_connection_internal_ludis <- function() {
     version = 2
   )
   
+  print(token)
+  
   # Create connection with token
   attrs_before <- list("azure_token" = token$credentials$access_token)
   
