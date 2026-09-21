@@ -25,7 +25,7 @@ get_min_season_year <- function(filters = NULL, conn = NULL) {
   }
 
   if (is.null(conn)) {
-    conn <- get_db_connection()
+    conn <- get_connection_ludis()
   }
 
   where_clause <- build_filter_clause(filters)
@@ -58,7 +58,7 @@ get_formats <- function(filters = NULL, conn = NULL) {
   }
   
   if (is.null(conn)) {
-    conn <- get_db_connection()
+    conn <- get_connection_ludis()
   }
   
   where_clause <- build_filter_clause(filters)
@@ -99,7 +99,7 @@ get_series <- function(filters = NULL, conn = NULL) {
   # }
   # 
   # if (is.null(conn)) {
-  #   conn <- get_db_connection()
+  #   conn <- get_connection_ludis()
   # }
   # 
   # where_clause <- build_filter_clause(filters)
@@ -130,7 +130,7 @@ get_venues <- function(filters = NULL, conn = NULL) {
   }
   
   if (is.null(conn)) {
-    conn <- get_db_connection()
+    conn <- get_connection_ludis()
   }
   
   where_clause <- build_filter_clause(filters)
@@ -172,7 +172,7 @@ get_teams <- function(filters = NULL, conn = NULL) {
   }
   
   if (is.null(conn)) {
-    conn <- get_db_connection()
+    conn <- get_connection_ludis()
   }
   
   where_clause <- build_filter_clause(filters)
@@ -215,7 +215,7 @@ get_players <- function(filters = NULL, conn = NULL) {
   }
   
   if (is.null(conn)) {
-    conn <- get_db_connection()
+    conn <- get_connection_ludis()
   }
   
   where_clause <- build_filter_clause(filters)
