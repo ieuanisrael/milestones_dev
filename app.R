@@ -57,8 +57,9 @@ ui <- page_navbar(
 
 server <- function(input, output, session) {
   con <- get_connection_ludis()
+  internal_con <- get_connection_internal_ludis()
   
-  playerDashboardServer("player", con = con)
+  playerDashboardServer("player", con = con, internal_con = internal_con)
   milestoneExplorerServer("explorer", con = con)
 }
 
