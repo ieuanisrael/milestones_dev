@@ -5,26 +5,24 @@ has_filter_value <- function(value) {
   !is.null(value) &&
     length(value) > 0 &&
     !is.na(value) &&
-    (!is.character(value) || (nzchar(value) && !identical(value, "All")))
+    !identical(as.character(value), all_id) &&
+    !(is.character(value) && !nzchar(value))
 }
 
 sql_literal <- function(value) {
+  
   if (is.null(value) || length(value) == 0 || is.na(value)) {
     return("NULL")
   }
 
-  if (is.numeric(value) || is.integer(value)) {
-    return(as.character(value))
-  }
-
-  paste0("'", gsub("'", "''", as.character(value)), "'")
+  as.integer(value)
 }
 
 sql_list <- function(values) {
   paste0("(", paste(values, collapse = ","), ")")
 }
 
-build_filter_clause <- function(filters, player_id = NULL, definition = NULL) {
+build_filter_clause <- function(filters, player_id = NULL, definition = NULL, include_tier_cutoff = TRUE) {
   clauses <- c()
 
   if (!is.null(filters) && has_filter_value(filters$format)) {
@@ -32,29 +30,34 @@ build_filter_clause <- function(filters, player_id = NULL, definition = NULL) {
   }
 
   if (!is.null(filters) && has_filter_value(filters$series)) {
-    clauses <- c(clauses, paste0("series.name = ", sql_literal(filters$series)))
-    if (filters$series == "Aus Domestic T20 M") {
+    clauses <- c(clauses, paste0("series.series_id = ", sql_literal(filters$series)))
+    if (identical(as.character(filters$series), as.character(series_choices[["Aus Domestic T20 M"]]))) {
       clauses <- c(clauses, paste0("CAST(LEFT(season.name, 4) AS INT) >= 2011"))
     }
-    if (filters$series == "Aus Domestic T20 F") {
+    if (identical(as.character(filters$series), as.character(series_choices[["Aus Domestic T20 F"]]))) {
       clauses <- c(clauses, paste0("CAST(LEFT(season.name, 4) AS INT) >= 2015"))
     }
   }
 
   if (!is.null(filters) && has_filter_value(filters$venue)) {
-    clauses <- c(clauses, paste0("venue.name = ", sql_literal(filters$venue)))
+    clauses <- c(clauses, paste0("venue.venue_id = ", sql_literal(filters$venue)))
   }
 
   if (!is.null(filters) && has_filter_value(filters$team)) {
-    clauses <- c(clauses, paste0("team.team_name = ", sql_literal(filters$team)))
+    clauses <- c(clauses, paste0("team.team_id = ", sql_literal(filters$team)))
   }
 
   if (!is.null(player_id)) {
     clauses <- c(clauses, paste0("p.player_id = ", sql_literal(player_id)))
   }
 
-  if (!is.null(definition) && definition$query_strategy %in% c("tiered_innings", "tiered_match")) {
-    clauses <- c(clauses, glue::glue("pi.{definition$value_column} >= {definition$first_value}"))
+  if (
+    include_tier_cutoff &&
+      !is.null(definition) &&
+      definition$query_strategy %in% c("tiered_innings", "tiered_match") &&
+      !is.na(event_cutoff(definition))
+  ) {
+    clauses <- c(clauses, glue::glue("pi.{definition$value_column} >= {event_cutoff(definition)}"))
   }
 
   if (!is.null(definition) && definition$definition_id == "carried_bat") {
@@ -82,5 +85,29 @@ build_filter_clause <- function(filters, player_id = NULL, definition = NULL) {
   }
 
   paste("WHERE", paste(clauses, collapse = " AND "))
+}
+
+series_min_year <- function(series) {
+  series_id <- as.character(series)
+  if (identical(series_id, as.character(series_choices[["Aus Domestic T20 M"]]))) {
+    2011L
+  } else if (identical(series_id, as.character(series_choices[["Aus Domestic T20 F"]]))) {
+    2015L
+  } else {
+    NA_integer_
+  }
+}
+
+series_date_range_label <- function(series, min_year = NULL) {
+  year <- min_year
+  if (is.null(year) || length(year) == 0 || is.na(year)) {
+    year <- series_min_year(series)
+  }
+
+  if (!is.null(year) && length(year) == 1 && !is.na(year)) {
+    p("Min year: ", strong(year))
+  } else {
+    "Min year: all available seasons"
+  }
 }
 

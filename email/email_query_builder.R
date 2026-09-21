@@ -15,10 +15,9 @@ build_cumulative_query <- function(
     "rr.stat_column"
   )
   
-  progress <- build_step_progress(
+  progress <- build_threshold_progress(
     value_expr = agg_sql,
-    first_value = definition$first_value,
-    multiple = definition$multiple
+    thresholds = thresholds_for(definition$display_name, series)
   )
   
   filter_sql <- build_filter_clause(filters, player_id, definition) 
@@ -107,9 +106,7 @@ build_tiered_innings_query <- function(
   
   tier_case <- build_tier_case(
     value_column = definition$value_column,
-    first_value = definition$first_value,
-    multiple = definition$multiple,
-    max_value = definition$max_value
+    event_values = related_event_values(definition)
   )
   
   filter_sql <- build_filter_clause(filters, player_id, definition) 
@@ -146,7 +143,7 @@ FROM (
       p.player_id,
       p.name,
       m.match_date,
-      {tier_case} as current_tier
+      {tier_case}
 
     FROM {view}.[MatchPlayers] mp
 
@@ -189,10 +186,8 @@ build_tiered_match_query <- function(
 ){
   
   tier_case <- build_tier_case(
-    value_column = "match_value",
-    first_value = definition$first_value,
-    multiple = definition$multiple,
-    max_value = definition$max_value
+    value_column = definition$value_column,
+    event_values = related_event_values(definition)
   )
   
   filter_sql <- build_filter_clause(filters, player_id, definition) 

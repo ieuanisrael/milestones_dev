@@ -6,15 +6,10 @@ get_milestone_leaderboard <- function(new_display_name, definition, filters = NU
     return(tibble())
   }
 
-  query_text <- build_query(
-    definition = definition,
-    filters = filters
-  )
-
   res <- tryCatch(
-    QueryDBFunction(
-      con = get_db_connection(),
-      query = query_text
+    execute_milestone_query(
+      definition = definition,
+      filters = filters
     ),
     error = function(e) NULL
   )

@@ -45,7 +45,7 @@ footer_row <- fluidRow(style = paste0("background-color: #002855; height: 35px; 
                                 width = 100
                               )),
                        column(6,
-                              p(span("Ieuan Israel | Powered by Ludis Analytics", style = 'color:#ffffff; font-size: 15px')),
+                              p(span(glue("Ieuan Israel | Powered by Ludis Analytics | Updated: {Sys.Date()}"), style = 'color:#ffffff; font-size: 15px')),
                               align = "right"
                        )
 )
