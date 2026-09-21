@@ -132,17 +132,13 @@ milestoneExplorerServer <- function(id, con, internal_con) {
           FROM 
             [elite].[LISTS_contract_lists]
           WHERE
-            team_id = '{filters()$series}' AND season = '{this_year}'"
+            team_id in {series_teams[[filters()$series]]} AND season = '{this_year}'"
         )
         
-        query %>% print
-
         team_list <- tryCatch(
           QueryDBFunction(con = internal_con, query = query),
           error = function(e) NULL
         )
-        
-        team_list %>% glimpse
         
         datatable(
           leaderboard_data(),
