@@ -153,11 +153,11 @@ milestoneExplorerServer <- function(id, con, internal_con) {
           style = "default"
         ) %>%
           formatStyle(
-            'Player',
+            'player_id',
             target = 'row',
             backgroundColor = styleEqual(
-              team_list$name, # The exact names to look for
-              rep('#fff2cc', length(team_list$name)),  # Highlights matches in light yellow
+              team_list$ams_id, # The exact names to look for
+              rep('#fff2cc', length(team_list$ams_id)),  # Highlights matches in light yellow
               default = '#ffffff'
             )
           )
