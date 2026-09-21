@@ -14,33 +14,33 @@ library(DT)
 Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
 
 # Configuration and lookup definitions
-source("./R/config/milestone_def.R")
-source("./R/config/select_choices.R")
-if (file.exists("./R/config/constants.R")) {
-  source("./R/config/constants.R")
+source("/srv/shiny-server/R/config/milestone_def.R")
+source("/srv/shiny-server/R/config/select_choices.R")
+if (file.exists("/srv/shiny-server/R/config/constants.R")) {
+  source("/srv/shiny-server/R/config/constants.R")
 } else {
-  source("./R/config/local_constants.R")
+  source("/srv/shiny-server/R/config/local_constants.R")
 }
 
 # Database helpers and query utilities
-source("./R/database/connection.R")
-source("./R/database/filters.R")
-source("./R/database/lookups.R")
-source("./R/database/local_data.R")
-source("./R/database/auth.R")
+source("/srv/shiny-server/R/database/connection.R")
+source("/srv/shiny-server/R/database/filters.R")
+source("/srv/shiny-server/R/database/lookups.R")
+source("/srv/shiny-server/R/database/local_data.R")
+source("/srv/shiny-server/R/database/auth.R")
 
 # Milestone computation helpers
-source("./R/milestone_functions/leaderboard.R")
-source("./R/milestone_functions/milestone_helpers.R")
-source("./R/milestone_functions/player_progress.R")
-source("./R/milestone_functions/query_builders.R")
+source("/srv/shiny-server/R/milestone_functions/leaderboard.R")
+source("/srv/shiny-server/R/milestone_functions/milestone_helpers.R")
+source("/srv/shiny-server/R/milestone_functions/player_progress.R")
+source("/srv/shiny-server/R/milestone_functions/query_builders.R")
 
 # UI modules
-source("./R/modules/mod_player_dashboard.R")
-source("./R/modules/mod_milestone_explorer.R")
-source("./R/modules/mod_conditional_filters.R")
-source("./R/utils/headerFooter.R")
-# source("./R/modules/mod_milestone_builder.R")
+source("/srv/shiny-server/R/modules/mod_player_dashboard.R")
+source("/srv/shiny-server/R/modules/mod_milestone_explorer.R")
+source("/srv/shiny-server/R/modules/mod_conditional_filters.R")
+source("/srv/shiny-server/R/utils/headerFooter.R")
+# source("/srv/shiny-server/R/modules/mod_milestone_builder.R")
 
 ui <- page_navbar(
   
