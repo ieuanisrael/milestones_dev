@@ -14,6 +14,8 @@ get_milestone_leaderboard <- function(new_display_name, definition, filters = NU
     ),
     error = function(e) NULL
   )
+  
+  res %>% glimpse
 
   if (is.null(res) || nrow(res) == 0) {
     return(tibble(player = NA, value = NA))

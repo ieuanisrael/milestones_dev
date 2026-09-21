@@ -141,6 +141,10 @@ milestoneExplorerServer <- function(id, con) {
           error = function(e) NULL
         )
         
+        print("HELLO IEUAN")
+        
+        leaderboard_data() %>% glimpse
+        
         datatable(
           leaderboard_data(),
           style = "default"
