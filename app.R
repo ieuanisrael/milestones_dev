@@ -27,6 +27,7 @@ source("./R/database/connection.R")
 source("./R/database/filters.R")
 source("./R/database/lookups.R")
 source("./R/database/local_data.R")
+source("./R/database/auth.R")
 
 # Milestone computation helpers
 source("./R/milestone_functions/leaderboard.R")
@@ -55,7 +56,7 @@ ui <- page_navbar(
 )
 
 server <- function(input, output, session) {
-  con <- get_db_connection()
+  con <- get_connection_ludis()
   
   playerDashboardServer("player", con = con)
   milestoneExplorerServer("explorer", con = con)
