@@ -134,10 +134,17 @@ milestoneExplorerServer <- function(id, con, internal_con) {
           "220008" = "'Sydney Sixers M', 'Sydney Thunder M'"
         )
         
-        query <- get_players_query(series_teams[[filters()$series]], filters()$series, "2025-26")
+        query <- glue(
+          "SELECT 
+            [ams_id]
+          FROM 
+            [elite].[LISTS_contract_lists]
+          WHERE
+            team_id = {series_teams[[filters()$series]]} AND season = {this_year}"
+        )
 
         team_list <- tryCatch(
-          QueryDBFunction(con = con, query = query),
+          QueryDBFunction(con = internal_con, query = query),
           error = function(e) NULL
         )
         
