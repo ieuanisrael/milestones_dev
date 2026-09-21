@@ -60,7 +60,7 @@ server <- function(input, output, session) {
   internal_con <- get_connection_internal_ludis()
   
   playerDashboardServer("player", con = con, internal_con = internal_con)
-  milestoneExplorerServer("explorer", con = con)
+  milestoneExplorerServer("explorer", con = con, internal_con = internal_con)
 }
 
 # Run the application
