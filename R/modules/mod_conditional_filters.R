@@ -84,7 +84,7 @@ conditionalFiltersUI <- function(id) {
   )
 }
 
-conditionalFiltersServer <- function(id, con, internal_con) {
+conditionalFiltersServer <- function(id, con) {
   moduleServer(id, function(input, output, session) {
 
     output$filter_legend <- renderUI({
