@@ -149,7 +149,7 @@ milestoneExplorerServer <- function(id, con, internal_con) {
         )
         
         team_list %>% glimpse
-        leaderboard_data %>% glimpse
+        leaderboard_data() %>% glimpse
         
         datatable(
           leaderboard_data(),
