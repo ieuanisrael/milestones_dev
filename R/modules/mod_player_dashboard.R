@@ -189,10 +189,6 @@ playerDashboardServer <- function(id, con) {
         
         p_progress <- player_progress()
         
-        validate(
-          need(nrow(p_progress) > 0, "Waiting on data...")
-        )
-        
         p_progress %>%
           transmute(
             Milestone = display_name,
