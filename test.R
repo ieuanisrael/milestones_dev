@@ -17,7 +17,7 @@ get_connection_internal_ludis <- function() {
   AUTHORITY_HOST_URL <- "https://login.microsoftonline.com"
   SQL_SERVER_SCOPE <- "https://database.windows.net/.default"
   
-  app_id <- Sys.getenv("app_id_internal")
+  app_id <- Sys.getenv("app_internal")
   secret <- Sys.getenv("secret_internal")
   
   # Internal database parameters (from your Python code)
