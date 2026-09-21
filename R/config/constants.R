@@ -2,7 +2,7 @@ view <- "[GA20260618]"
 carried_bat_batting_position <- c(0, 1)
 not_out_id <- 0
 invalid_match_result_ids <- c(13)
-
+this_year <<- "2025-26"
 
 series_db <- data.frame(
   ids = c(3,
