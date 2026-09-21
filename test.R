@@ -6,7 +6,10 @@ query <- "SELECT [season]
       ,[expiry]
       ,[team_id]
       ,[replaced_player_id]
-  FROM [elite].[LISTS_contract_lists]"
+      [ams_id]
+  FROM [elite].[LISTS_contract_lists]
+  WHERE season = '2025-26 AND
+  team_id = 3"
 
 
 #' Create a connection to the internal database via Ludis
