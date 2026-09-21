@@ -1,3 +1,5 @@
+library(tidyverse)
+
 query <- "SELECT [season]
       ,[first_name]
       ,[surname]
