@@ -265,7 +265,7 @@ execute_milestone_query <- function(definition, player_id = NULL, filters = NULL
   }
 
   QueryDBFunction(
-    con = get_db_connection(),
+    con = get_connection_ludis(),
     query = build_query(
       definition = definition,
       player_id = player_id,
