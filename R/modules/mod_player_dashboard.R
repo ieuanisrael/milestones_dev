@@ -92,7 +92,7 @@ playerDashboardUI <- function(id) {
   )
 }
 
-playerDashboardServer <- function(id, con) {
+playerDashboardServer <- function(id, con, internal_con) {
   moduleServer(id, function(input, output, session) {
 
     filters <- conditionalFiltersServer("conditional_filters", con = con)
