@@ -8,9 +8,8 @@ query <- "SELECT [season]
       ,[replaced_player_id]
       [ams_id]
   FROM [elite].[LISTS_contract_lists]
-  WHERE season = '2025-26 AND
-  team_id = 3"
-
+  WHERE season = '2025-26' AND
+  team_id = '3'"
 
 #' Create a connection to the internal database via Ludis
 #' 
