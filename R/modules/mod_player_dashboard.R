@@ -187,16 +187,15 @@ playerDashboardServer <- function(id, con) {
       {
         req(input$player)
         
-        p_progress <- player_progress()
-        
-        p_progress %>%
+        player_progress() %>%
           transmute(
             Milestone = display_name,
             Value = current_value,
             Target = next_target,
             Projected = round(projected, 0),
             `On track` = ifelse(season_achievable, "Yes", "No")
-          )
+          ) %>%
+          datatable()
       },
       options = list(
         pageLength = 8,
