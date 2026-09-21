@@ -147,8 +147,10 @@ milestoneExplorerServer <- function(id, con, internal_con) {
         datatable(
           leaderboard_data(),
           style = "default",
-          columnDefs = list(
-            list(targets = 1, visible = FALSE)
+          options = list(
+            columnDefs = list(
+              list(targets = 1, visible = FALSE, searchable = TRUE)
+            )
           )
         ) %>%
           formatStyle(
