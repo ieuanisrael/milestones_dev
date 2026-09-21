@@ -62,7 +62,10 @@ server <- function(input, output, session) {
   milestoneExplorerServer("explorer", con = con)
 }
 
-options(shiny.launch.browser = TRUE)
+# Run the application
+options(shiny.host = '0.0.0.0')
+options(shiny.port = 80)
+shinyApp(ui = ui, server = server)
 
 shinyApp(ui, server)
 
