@@ -11,6 +11,8 @@ get_milestone_leaderboard <- function(new_display_name, definition, filters = NU
     ),
     error = function(e) NULL
   )
+  
+  res %>% glimpse
 
   if (is.null(res) || nrow(res) == 0) {
     return(tibble(player = NA, value = NA))
@@ -19,6 +21,7 @@ get_milestone_leaderboard <- function(new_display_name, definition, filters = NU
   res %>%
     filter(display_name == new_display_name) %>%
     transmute(
+      player_id = player_id,
       Player = name,
       Value = current_value
     ) %>%
