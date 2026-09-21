@@ -148,7 +148,7 @@ milestoneExplorerServer <- function(id, con, internal_con) {
           leaderboard_data(),
           style = "default",
           columnDefs = list(
-            list(targets = c(1), visible = FALSE)
+            list(targets = 1, visible = FALSE)
           )
         ) %>%
           formatStyle(
