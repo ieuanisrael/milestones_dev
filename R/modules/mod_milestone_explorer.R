@@ -148,6 +148,9 @@ milestoneExplorerServer <- function(id, con, internal_con) {
           error = function(e) NULL
         )
         
+        team_list %>% glimpse
+        leaderboard_data %>% glimpse
+        
         datatable(
           leaderboard_data(),
           style = "default"
