@@ -7,7 +7,7 @@ build_cumulative_query <- function(
   
   agg_sql <- build_aggregation(
     definition$aggregation,
-    "rr.stat_column"
+    glue("pi.{definition$value_column}")
   )
   
   agg_select_sql <- build_select_aggregation(
@@ -16,7 +16,7 @@ build_cumulative_query <- function(
   )
   
   progress <- build_threshold_progress(
-    value_expr = agg_sql,
+    value_expr = "rr.rc",
     thresholds = thresholds_for(definition$display_name, series)
   )
   
@@ -29,7 +29,8 @@ WITH RankedRows AS (
         p.name,
         pi.{definition$value_column} as stat_column,
         m.match_date,
-        ROW_NUMBER() OVER (PARTITION BY mp.player_id ORDER BY match_date DESC) as rn
+        ROW_NUMBER() OVER (PARTITION BY mp.player_id ORDER BY match_date DESC) as rn,
+        {agg_sql} OVER (PARTITION BY mp.player_id ORDER BY match_date ASC) as rc
     FROM [GA20260618].[MatchPlayers] mp
 
     JOIN [GA20260618].[PlayerInnings] pi
@@ -48,33 +49,19 @@ WITH RankedRows AS (
     ON m.season_id = season.season_id
 
     {filter_sql}
-), lastRow AS (
-    SELECT 
-        player_id,
-        name,
-        stat_column,
-        match_date
-    FROM
-        RankedRows
-    WHERE
-        rn = 1
-)
-
-
-SELECT
+), sortedRows AS (
+    SELECT
 
     '{definition$display_name}' AS display_name,
 
     rr.player_id,
     rr.name,
-
-    max(lr.match_date) 
-      AS last_match_date,
     
     {agg_select_sql}
     
-    {agg_sql}
+    rr.rc
       AS current_value,
+    rr.match_date as match_date,
 
     {progress$current_tier}
       AS current_tier,
@@ -85,15 +72,34 @@ SELECT
     'cumulative'
       AS milestone_type
 
-FROM RankedRows as rr
-JOIN lastRow as lr on lr.player_id = rr.player_id
+  FROM 
+    RankedRows as rr
+  
+  GROUP BY
+      rr.rc,
+      rr.match_date,
+      rr.player_id,
+      rr.name
+)
 
-GROUP BY
-    rr.player_id,
-    rr.name
-
-ORDER BY
-    current_value DESC
+select
+    player_id,
+    name,
+    current_tier,
+    next_threshold,
+    avg_value,
+    max(current_value) as current_value,
+    max(match_date) as last_match_date
+from 
+    sortedRows
+group by
+    avg_value,
+    player_id,
+    name,
+    current_tier,
+    next_threshold
+order by
+    last_match_date desc
              ")
 }
 

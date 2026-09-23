@@ -60,7 +60,7 @@ milestoneExplorerServer <- function(id, con, internal_con) {
           ),
           
           tags$div(
-            style = "background-color:#fff2cc; padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);",
+            style = "background-color: #00b0f0; padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);",
             
             # Message body
             tags$div(
@@ -125,20 +125,25 @@ milestoneExplorerServer <- function(id, con, internal_con) {
     output$tab <- renderDataTable(
       {
         req(filters()$series)
+
+        team_list <- data.frame(ams_id = '')
         
-        query <- glue(
-          "SELECT 
+        if ( !is.null(internal_con) ) {
+          
+          query <- glue(
+            "SELECT 
             [ams_id]
           FROM 
             [elite].[LISTS_contract_lists]
           WHERE
             team_id in {series_teams[[filters()$series]]} AND season = '{this_year}'"
-        )
-        
-        team_list <- tryCatch(
-          QueryDBFunction(con = internal_con, query = query),
-          error = function(e) NULL
-        )
+          )
+          
+          team_list <- tryCatch(
+            QueryDBFunction(con = internal_con, query = query),
+            error = function(e) NULL
+          )
+        }
         
         datatable(
           leaderboard_data(),
@@ -154,7 +159,7 @@ milestoneExplorerServer <- function(id, con, internal_con) {
             target = 'row',
             backgroundColor = styleEqual(
               team_list$ams_id, # The exact names to look for
-              rep('#fff2cc', length(team_list$ams_id)),  # Highlights matches in light yellow
+              rep('#00b0f0', length(team_list$ams_id)),  # Highlights matches in light yellow
               default = '#ffffff'
             )
           )

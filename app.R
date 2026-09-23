@@ -12,35 +12,38 @@ library(odbc)
 library(DT)
 
 Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
+Sys.setenv("MILESTONES_USE_LUDIS" = 1) # uncomment for database
+
+prefix <- ifelse(Sys.getenv("MILESTONES_USE_LUDIS") == 0, ".", "/srv/shiny-server")
 
 # Configuration and lookup definitions
-source("/srv/shiny-server/R/config/milestone_def.R")
-source("/srv/shiny-server/R/config/select_choices.R")
-if (file.exists("/srv/shiny-server/R/config/constants.R")) {
-  source("/srv/shiny-server/R/config/constants.R")
+source(glue("{prefix}/R/config/milestone_def.R"))
+source(glue("{prefix}/R/config/select_choices.R"))
+if (file.exists(glue("{prefix}/R/config/constants.R"))) {
+  source(glue("{prefix}/R/config/constants.R"))
 } else {
-  source("/srv/shiny-server/R/config/local_constants.R")
+  source(glue("{prefix}/R/config/local_constants.R"))
 }
 
 # Database helpers and query utilities
-source("/srv/shiny-server/R/database/connection.R")
-source("/srv/shiny-server/R/database/filters.R")
-source("/srv/shiny-server/R/database/lookups.R")
-source("/srv/shiny-server/R/database/local_data.R")
-source("/srv/shiny-server/R/database/auth.R")
+source(glue("{prefix}/R/database/connection.R"))
+source(glue("{prefix}/R/database/filters.R"))
+source(glue("{prefix}/R/database/lookups.R"))
+source(glue("{prefix}/R/database/local_data.R"))
+source(glue("{prefix}/R/database/auth.R"))
 
 # Milestone computation helpers
-source("/srv/shiny-server/R/milestone_functions/leaderboard.R")
-source("/srv/shiny-server/R/milestone_functions/milestone_helpers.R")
-source("/srv/shiny-server/R/milestone_functions/player_progress.R")
-source("/srv/shiny-server/R/milestone_functions/query_builders.R")
+source(glue("{prefix}/R/milestone_functions/leaderboard.R"))
+source(glue("{prefix}/R/milestone_functions/milestone_helpers.R"))
+source(glue("{prefix}/R/milestone_functions/player_progress.R"))
+source(glue("{prefix}/R/milestone_functions/query_builders.R"))
 
 # UI modules
-source("/srv/shiny-server/R/modules/mod_player_dashboard.R")
-source("/srv/shiny-server/R/modules/mod_milestone_explorer.R")
-source("/srv/shiny-server/R/modules/mod_conditional_filters.R")
-source("/srv/shiny-server/R/utils/headerFooter.R")
-# source("/srv/shiny-server/R/modules/mod_milestone_builder.R")
+source(glue("{prefix}/R/modules/mod_player_dashboard.R"))
+source(glue("{prefix}/R/modules/mod_milestone_explorer.R"))
+source(glue("{prefix}/R/modules/mod_conditional_filters.R"))
+source(glue("{prefix}/R/utils/headerFooter.R"))
+# source("/srv/shiny-server/R/modules/mod_milestone_builder.R"))
 
 ui <- page_navbar(
   
@@ -56,11 +59,15 @@ ui <- page_navbar(
 )
 
 server <- function(input, output, session) {
-  con <- get_connection_ludis()
-  internal_con <- get_connection_internal_ludis()
-  
-  playerDashboardServer("player", con = con, internal_con = internal_con)
-  milestoneExplorerServer("explorer", con = con, internal_con = internal_con)
+  if (Sys.getenv("MILESTONES_USE_LUDIS") == 0) {
+    con <- get_connection_local()
+    con_internal <- NULL
+  } else {
+    con <- get_connection_ludis()
+    con_internal <- get_connection_internal_ludis()
+  }
+  playerDashboardServer("player", con = con, internal_con = con_internal)
+  milestoneExplorerServer("explorer", con = con, internal_con = con_internal)
 }
 
 # Run the application
