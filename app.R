@@ -12,8 +12,9 @@ library(odbc)
 library(DT)
 
 Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
+Sys.setenv("MILESTONES_USE_LUDIS" = 0) # uncomment for database
 
-prefix <- "."
+prefix <- ifelse(Sys.getenv("MILESTONES_USE_LUDIS") == 0, ".", "/srv/shiny-server")
 
 # Configuration and lookup definitions
 source(glue("{prefix}/R/config/milestone_def.R"))
@@ -58,11 +59,15 @@ ui <- page_navbar(
 )
 
 server <- function(input, output, session) {
-  con <- get_db_connection()
-  #internal_con <- get_connection_internal_ludis()
-  
-  playerDashboardServer("player", con = con, internal_con = NULL)
-  milestoneExplorerServer("explorer", con = con, internal_con = NULL)
+  if (Sys.getenv("MILESTONES_USE_LUDIS") == 0) {
+    con <- get_connection_local()
+    con_internal <- NULL
+  } else {
+    con <- get_connection_ludis()
+    con_internal <- get_connection_internal_ludis()
+  }
+  playerDashboardServer("player", con = con, internal_con = con_internal)
+  milestoneExplorerServer("explorer", con = con, internal_con = con_internal)
 }
 
 # Run the application

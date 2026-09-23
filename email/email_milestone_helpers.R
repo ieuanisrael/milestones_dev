@@ -114,7 +114,7 @@ build_aggregation <- function(
     
     count =
       glue::glue(
-        "COUNT(DISTINCT {value_column})"
+        "COUNT({value_column})"
       ),
     
     stop("Unknown aggregation function")

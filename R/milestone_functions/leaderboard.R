@@ -13,7 +13,7 @@ get_milestone_leaderboard <- function(new_display_name, definition, filters = NU
   )
 
   if (is.null(res) || nrow(res) == 0) {
-    return(tibble(player = NA, value = NA))
+    return(tibble(player_id = NA, player = NA, value = NA))
   }
 
   res %>%

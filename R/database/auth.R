@@ -7,13 +7,13 @@ get_connection_local <- function() {
   
   ser <- "auscricketams.database.windows.net" # Establishing server
   db <- "auscricketpdae" # Establishing database
-  ui <- "scott.peterson@cricketnsw.com.au"#write your work email address inside the quotation marks
+  ui <- "ieuan.israel@cricketnsw.com.au"#write your work email address inside the quotation marks
   passwd <- ''
   
   con <- dbConnect(odbc(),
                    UID = ui,
                    #pwd = passwd,
-                   Driver = "ODBC Driver 17 for SQL Server", # If you don't have this driver installed on your computer, email Stumped and ask to get it installed
+                   Driver = "ODBC Driver 18 for SQL Server", # If you don't have this driver installed on your computer, email Stumped and ask to get it installed
                    Server = ser,
                    Database = db,
                    Authentication = "ActiveDirectoryInteractive")
