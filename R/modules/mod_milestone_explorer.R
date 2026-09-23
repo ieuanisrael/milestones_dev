@@ -126,7 +126,24 @@ milestoneExplorerServer <- function(id, con, internal_con) {
       {
         req(filters()$series)
 
-        team_list <- data.frame(ams_id = '2070026')
+        team_list <- data.frame(ams_id = '')
+        
+        if ( !is.null(internal_con) ) {
+          
+          query <- glue(
+            "SELECT 
+            [ams_id]
+          FROM 
+            [elite].[LISTS_contract_lists]
+          WHERE
+            team_id in {series_teams[[filters()$series]]} AND season = '{this_year}'"
+          )
+          
+          team_list <- tryCatch(
+            QueryDBFunction(con = internal_con, query = query),
+            error = function(e) NULL
+          )
+        }
         
         datatable(
           leaderboard_data(),
