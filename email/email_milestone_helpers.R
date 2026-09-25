@@ -79,7 +79,7 @@ build_select_aggregation <- function(
     
     sum =
       glue::glue(
-        "max(lr.stat_column)
+        "max(rr.stat_column)
           AS last_value,
         avg(rr.stat_column)
           AS avg_value,"
