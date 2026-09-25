@@ -64,7 +64,7 @@ server <- function(input, output, session) {
     con_internal <- NULL
   } else {
     con <- get_connection_ludis()
-    #con_internal <- get_connection_internal_ludis()
+    con_internal <- get_connection_internal_ludis()
   }
   playerDashboardServer("player", con = con, internal_con = con_internal)
   milestoneExplorerServer("explorer", con = con, internal_con = con_internal)
