@@ -3,7 +3,7 @@ library(lubridate)
 library(dplyr)
 
 Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
-Sys.setenv("MILESTONES_USE_LUDIS" = 0)
+Sys.setenv("MILESTONES_USE_LUDIS" = 1)
 
 if (!file.exists("app.R")) {
   stop("Run this script from the milestones_dev project root.")
