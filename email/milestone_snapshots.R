@@ -3,6 +3,7 @@ library(lubridate)
 library(dplyr)
 
 Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
+Sys.setenv("MILESTONES_USE_LUDIS" = 0)
 
 if (!file.exists("app.R")) {
   stop("Run this script from the milestones_dev project root.")
@@ -38,7 +39,12 @@ source("./email/email_query_builder.R")
 
 enabled <- milestones_for_series(filters$series)
 
-con <- get_connection_ludis()
+if(Sys.getenv("MILESTONES_USE_LUDIS") == 1) {
+  con <- get_connection_ludis()
+} else {
+  con <- get_connection_local()
+}
+
 
 results <- purrr::map_df(seq_len(nrow(enabled)), function(i) {
   definition <- enabled[i, ]
@@ -74,8 +80,22 @@ progress <- purrr::map_df(seq_len(nrow(enabled)), function(i) {
   
 })
 
-if (is_local_data()) {
-  team_list <- local_get_players_for(team, series, season)
+
+
+if (Sys.getenv("MILESTONES_USE_LUDIS") == 1) {
+  query <- glue(
+    "SELECT 
+            [ams_id]
+          FROM 
+            [elite].[LISTS_contract_lists]
+          WHERE
+            team_id in {series} AND season = '{this_year}'"
+  )
+  
+  team_list <- tryCatch(
+    QueryDBFunction(con = con, query = query),
+    error = function(e) NULL
+  )
 } else {
   query <- get_players_query(team, series, season)
   team_list <- tryCatch(

@@ -269,8 +269,6 @@ execute_milestone_query <- function(definition, player_id = NULL, filters = NULL
     player_id = player_id,
     filters = filters
   )
-  
-  print(q)
 
   QueryDBFunction(
     con = con,
