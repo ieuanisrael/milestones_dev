@@ -263,14 +263,18 @@ execute_milestone_query <- function(definition, player_id = NULL, filters = NULL
   if (is_local_data()) {
     return(local_milestone_query(definition, player_id, filters))
   }
+  
+  q <- build_query(
+    definition = definition,
+    player_id = player_id,
+    filters = filters
+  )
+  
+  print(q)
 
   QueryDBFunction(
     con = con,
-    query = build_query(
-      definition = definition,
-      player_id = player_id,
-      filters = filters
-    )
+    query = q
   )
 }
 

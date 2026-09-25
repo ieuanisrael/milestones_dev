@@ -9,22 +9,31 @@ library(lubridate)
 # -------------------------------
 
 last_match_milestones <- results %>%
-  filter(milestone_achieved, player %in% team_list$name, last_match_date > as.Date("2026-01-01"))
+  filter(name %in% team_list$name, milestone_date > as.Date("2026-01-01"))
 
-milestone_threshold <- results %>%
-  filter(within_threshold, player %in% team_list$name)
+current_season_milestones <- results %>%
+  filter(name %in% team_list$name, milestone_date > as.Date("2025-01-01"))
 
-top_10_thresholds <- results %>%
-  group_by(display_name) %>%
+milestone_threshold <- progress %>%
+  group_by(name) %>%
   mutate(
-    tenth = nth(current_value, 10),
+    within_threshold = current_value + (avg_value * 10) > next_threshold
+  ) %>%
+  filter(
+    within_threshold, 
+    name %in% team_list$name
+  )
+
+top_10_thresholds <- progress %>%
+  group_by(display_name) %>%
+  arrange(desc(current_value)) %>%
+  mutate(
+    tenth = nth(current_value, 10,na_rm = T),
     within_top_10 = current_value + 10 * avg_value > tenth & current_value > nth(current_value, 20),
     rank = dense_rank(desc(current_value))
   ) %>%
-  filter(within_top_10, player %in% team_list$name)
+  filter(within_top_10, name %in% team_list$name)
 
-current_season_milestones <- results %>%
-  filter(milestone_achieved, player %in% team_list$name, last_match_date > as.Date("2025-01-01"))
 
 # -------------------------------
 # Helper function
@@ -311,11 +320,10 @@ email_html <- tagList(
         last_match_milestones,
         function(x) {
           glue("
-          <strong>{x$player}</strong> has passed the milestone
-          <strong>{x$display_name_ui}</strong> ({x$threshold_value}).
+          <strong>{x$name}</strong> has passed the milestone
+          <strong>{x$display_name}</strong> ({x$milestone}).
           <br>
-          Current Total: <strong>{x$current_value}</strong><br>
-          Achievement Date: {as_date(x$last_match_date)}
+          Achievement Date: {as_date(x$milestone_date)}
         ")
         },
         "#28a745"
@@ -336,8 +344,8 @@ email_html <- tagList(
         milestone_threshold,
         function(x) {
           glue("
-          <strong>{x$player}</strong> is projected to pass
-          <strong>{x$display_name_ui}</strong> ({x$next_target})
+          <strong>{x$name}</strong> is projected to pass
+          <strong>{x$display_name}</strong> ({x$next_threshold})
           within the next 10 matches.
           <br>
           Current Total: <strong>{x$current_value}</strong>
@@ -361,11 +369,10 @@ email_html <- tagList(
         current_season_milestones,
         function(x) {
           glue("
-          <strong>{x$player}</strong> achieved
-          <strong>{last_match_performance_label(x)}</strong>
-          on {as_date(x$last_match_date)}.
+          <strong>{x$name}</strong> has passed the milestone
+          <strong>{x$display_name}</strong> ({x$milestone}).
           <br>
-          Career Total: <strong>{x$current_value}</strong>
+          Achievement Date: {as_date(x$milestone_date)}
         ")
         },
         "#9c27b0"
@@ -388,9 +395,9 @@ email_html <- tagList(
             top_10_thresholds,
             function(x) {
               glue("
-          <strong>{x$player}</strong>
+          <strong>{x$name}</strong>
           is currently ranked <strong>#{x$rank}</strong>
-          for <strong>{x$display_name_ui}</strong>.
+          for <strong>{x$display_name}</strong>.
           <br>
           Current Total: <strong>{x$current_value}</strong>
         ")

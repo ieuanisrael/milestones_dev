@@ -1,4 +1,21 @@
-
+create_threshold_sql <- function(thresholds) {
+  thresholds <- sort(unique(thresholds))
+  
+  paste(
+    c(
+      "milestones AS (",
+      paste0(
+        c(
+          paste0("    SELECT ", thresholds[1], " AS milestone"),
+          paste0("    UNION ALL SELECT ", thresholds[-1])
+        ),
+        collapse = "\n"
+      ),
+      ")"
+    ),
+    collapse = "\n"
+  )
+}
 
 build_cumulative_query <- function(
     definition,
@@ -10,96 +27,78 @@ build_cumulative_query <- function(
     glue("pi.{definition$value_column}")
   )
   
-  agg_select_sql <- build_select_aggregation(
-    definition$aggregation,
-    "rr.stat_column"
-  )
-  
-  progress <- build_threshold_progress(
-    value_expr = "rr.rc",
-    thresholds = thresholds_for(definition$display_name, series)
-  )
-  
   filter_sql <- build_filter_clause(filters, player_id, definition) 
   
+  thresholds <- create_threshold_sql(thresholds_for(definition$display_name, series))
+  
   glue::glue("
-WITH RankedRows AS (
-    SELECT 
+WITH innings_runs AS (
+    SELECT
         p.player_id,
         p.name,
-        pi.{definition$value_column} as stat_column,
+        m.match_id,
         m.match_date,
-        ROW_NUMBER() OVER (PARTITION BY mp.player_id ORDER BY match_date DESC) as rn,
-        {agg_sql} OVER (PARTITION BY mp.player_id ORDER BY match_date ASC) as rc
+        {agg_sql} AS current_value
     FROM [GA20260618].[MatchPlayers] mp
-
     JOIN [GA20260618].[PlayerInnings] pi
-    ON mp.match_id = pi.match_id AND mp.player_id = pi.player_id and mp.match_count = 1
-    JOIN [GA20260618].Players p
-    ON p.player_id = pi.player_id
-    JOIN [GA20260618].Matches m
-    ON m.match_id = pi.match_id
-    JOIN [GA20260618].Teams team 
-    ON pi.team_id = team.team_id
-    JOIN [GA20260618].Venues venue 
-    ON m.venue_id = venue.venue_id
-    JOIN [GA20260618].Series series 
-    ON m.series_id = series.series_id
-    JOIN [GA20260618].Seasons season
-    ON m.season_id = season.season_id
-
+        ON mp.match_id = pi.match_id
+        AND mp.player_id = pi.player_id
+        AND mp.match_count = 1
+    JOIN [GA20260618].[Players] p
+        ON p.player_id = pi.player_id
+    JOIN [GA20260618].[Matches] m
+        ON m.match_id = pi.match_id
+    JOIN [GA20260618].[Series] series
+        ON m.series_id = series.series_id
     {filter_sql}
-), sortedRows AS (
+    GROUP BY
+        p.player_id,
+        p.name,
+        m.match_id,
+        m.match_date
+),
+
+career_progression AS (
     SELECT
+        *,
+        SUM(current_value) OVER (
+            PARTITION BY player_id
+            ORDER BY match_date, match_id
+            ROWS UNBOUNDED PRECEDING
+        ) AS milestone_value
+    FROM innings_runs
+),
 
-    '{definition$display_name}' AS display_name,
+{thresholds},
 
-    rr.player_id,
-    rr.name,
-    
-    {agg_select_sql}
-    
-    rr.rc
-      AS current_value,
-    rr.match_date as match_date,
-
-    {progress$current_tier}
-      AS current_tier,
-
-    {progress$next_threshold}
-      AS next_threshold,
-
-    'cumulative'
-      AS milestone_type
-
-  FROM 
-    RankedRows as rr
-  
-  GROUP BY
-      rr.rc,
-      rr.match_date,
-      rr.player_id,
-      rr.name
+milestone_dates AS (
+    SELECT
+        cp.player_id,
+        cp.name,
+        m.milestone,
+        cp.match_date,
+        cp.milestone_value,
+        ROW_NUMBER() OVER (
+            PARTITION BY cp.player_id, m.milestone
+            ORDER BY cp.match_date, cp.match_id
+        ) AS rn
+    FROM career_progression cp
+    JOIN milestones m
+        ON cp.milestone_value >= m.milestone
 )
 
-select
+SELECT
+    '{definition$display_name}' as display_name,
     player_id,
     name,
-    current_tier,
-    next_threshold,
-    avg_value,
-    max(current_value) as current_value,
-    max(match_date) as last_match_date
-from 
-    sortedRows
-group by
-    avg_value,
-    player_id,
+    milestone,
+    match_date AS milestone_date,
+    milestone_value
+FROM milestone_dates
+WHERE rn = 1
+ORDER BY
     name,
-    current_tier,
-    next_threshold
-order by
-    last_match_date desc
+    milestone;
              ")
 }
 
@@ -117,70 +116,76 @@ build_tiered_innings_query <- function(
   
   filter_sql <- build_filter_clause(filters, player_id, definition) 
   
+  thresholds <- create_threshold_sql(thresholds_for(definition$display_name, series))
+  
   glue::glue("
+WITH milestone_innings AS (
+    SELECT
+        p.player_id,
+        p.name,
+        m.match_id,
+        m.match_date,
+        {tier_case},
+        1 AS current_value
+    FROM [GA20260618].[MatchPlayers] mp
+    JOIN [GA20260618].[PlayerInnings] pi
+        ON mp.match_id = pi.match_id
+        AND mp.player_id = pi.player_id
+        AND mp.match_count = 1
+    JOIN [GA20260618].[Players] p
+        ON p.player_id = pi.player_id
+    JOIN [GA20260618].[Matches] m
+        ON m.match_id = pi.match_id
+    JOIN [GA20260618].[Series] series
+        ON m.series_id = series.series_id
+    {filter_sql}
+),
+
+career_progression AS (
+    SELECT
+        *,
+        SUM(current_value) OVER (
+            PARTITION BY player_id, current_tier
+            ORDER BY match_date, match_id
+            ROWS UNBOUNDED PRECEDING
+        ) AS milestone_value
+    FROM milestone_innings
+),
+
+{thresholds},
+
+milestone_dates AS (
+    SELECT
+        cp.player_id,
+        cp.name,
+        cp.current_tier,
+        m.milestone,
+        cp.match_date,
+        cp.milestone_value,
+        ROW_NUMBER() OVER (
+            PARTITION BY cp.player_id,
+                         cp.current_tier,
+                         m.milestone
+            ORDER BY cp.match_date, cp.match_id
+        ) AS rn
+    FROM career_progression cp
+    JOIN milestones m
+        ON cp.milestone_value >= m.milestone
+)
 
 SELECT
-
-  CONCAT(
-    '{definition$display_name} - ',
-    current_tier
-  ) AS display_name,
-
-  player_id,
-  name,
-  max(match_date) AS last_match_date,
-  1 as last_value,
-  1 as avg_value,
-  COUNT(*) AS current_value,
-
-  FLOOR(COUNT(*) / 50.0) * 50
-      AS current_tier,
-
-  FLOOR(COUNT(*) / 50.0) * 50 + 50
-    AS next_threshold,
-
-  'tiered_innings'
-    AS milestone_type
-
-FROM (
-
-    SELECT
-
-      p.player_id,
-      p.name,
-      m.match_date,
-      {tier_case}
-
-    FROM {view}.[MatchPlayers] mp
-
-    JOIN {view}.[PlayerInnings] pi
-      ON mp.match_id = pi.match_id AND mp.player_id = pi.player_id and mp.match_count = 1
-    JOIN {view}.Players p
-      ON pi.player_id = p.player_id
-    JOIN {view}.Matches m
-      ON m.match_id = pi.match_id
-    JOIN {view}.Teams team 
-      ON pi.team_id = team.team_id
-    JOIN {view}.Venues venue 
-      ON m.venue_id = venue.venue_id
-    JOIN {view}.Series series 
-      ON m.series_id = series.series_id
-    JOIN [GA20260618].Seasons season
-      ON m.season_id = season.season_id
-
-    {filter_sql}
-
-) x
-
-GROUP BY
-
-  player_id,
-  name,
-  current_tier
-  
+    '{definition$display_name}' as display_name,
+    player_id,
+    name,
+    milestone,
+    match_date AS milestone_date,
+    milestone_value
+FROM milestone_dates
+WHERE rn = 1
 ORDER BY
-  current_value DESC
-
+    name,
+    current_tier,
+    milestone;
 ")
   
 }
@@ -192,100 +197,83 @@ build_tiered_match_query <- function(
 ){
   
   tier_case <- build_tier_case(
-    value_column = definition$value_column,
+    value_column = glue("sum({definition$value_column})"),
     event_values = related_event_values(definition)
   )
   
   filter_sql <- build_filter_clause(filters, player_id, definition) 
   
+  thresholds <- create_threshold_sql(thresholds_for(definition$display_name, series))
+  
   glue::glue("
-
-WITH match_summary AS (
-
+WITH match_hauls AS (
     SELECT
-
-      p.player_id,
-      p.name,
-
-      pi.match_id,
-      max(m.match_date) as match_date,
-      SUM(pi.{definition$value_column})
-        AS match_value
-
-    FROM {view}.[MatchPlayers] mp
-
-    JOIN {view}.[PlayerInnings] pi
-      ON mp.match_id = pi.match_id AND mp.player_id = pi.player_id and mp.match_count = 1
-    JOIN {view}.Players p
-      ON p.player_id = pi.player_id
-    JOIN {view}.Matches m
-      ON m.match_id = pi.match_id
-    JOIN {view}.Teams team 
-      ON pi.team_id = team.team_id
-    JOIN {view}.Venues venue 
-      ON m.venue_id = venue.venue_id
-    JOIN {view}.Series series 
-      ON m.series_id = series.series_id
-    JOIN [GA20260618].Seasons season
-      ON m.season_id = season.season_id
-
+        p.player_id,
+        p.name,
+        m.match_id,
+        m.match_date,
+        {tier_case},
+        1 AS current_value
+    FROM [GA20260618].[MatchPlayers] mp
+    JOIN [GA20260618].[PlayerInnings] pi
+        ON mp.match_id = pi.match_id
+        AND mp.player_id = pi.player_id
+        AND mp.match_count = 1
+    JOIN [GA20260618].[Players] p
+        ON p.player_id = pi.player_id
+    JOIN [GA20260618].[Matches] m
+        ON m.match_id = pi.match_id
+    JOIN [GA20260618].[Series] series
+        ON m.series_id = series.series_id
     {filter_sql}
-    
     GROUP BY
+        p.player_id,
+        p.name,
+        m.match_id,
+        m.match_date
+),
 
-      p.player_id,
-      p.name,
-      pi.match_id
+career_progression AS (
+    SELECT
+        *,
+        SUM(current_value) OVER (
+            PARTITION BY player_id
+            ORDER BY match_date, match_id
+            ROWS UNBOUNDED PRECEDING
+        ) AS milestone_value
+    FROM match_hauls
+),
 
+{thresholds},
+
+milestone_dates AS (
+    SELECT
+        cp.player_id,
+        cp.name,
+        m.milestone,
+        cp.match_date,
+        cp.milestone_value,
+        ROW_NUMBER() OVER (
+            PARTITION BY cp.player_id, m.milestone
+            ORDER BY cp.match_date, cp.match_id
+        ) AS rn
+    FROM career_progression cp
+    JOIN milestones m
+        ON cp.milestone_value >= m.milestone
 )
 
 SELECT
-
-    CONCAT(
-      '{definition$display_name} - ',
-      current_tier
-    ) AS display_name,
-
+    '{definition$display_name}' as display_name,
     player_id,
     name,
-    max(match_date) as last_match_date,
-    1 as last_value,
-    1 as avg_value,
-    COUNT(*) AS current_value,
-
-    FLOOR(COUNT(*) / 50.0) * 50
-      AS current_tier,
-
-    FLOOR(COUNT(*) / 50.0) * 50 + 50
-      AS next_threshold,
-
-    'tiered_match'
-      AS milestone_type
-
-FROM (
-
-    SELECT
-
-      player_id,
-      name,
-      match_date,
-      {tier_case} as current_tier
-
-    FROM match_summary
-
-) x
-
-WHERE current_tier IS NOT NULL
-
-GROUP BY
-
-  player_id,
-  name,
-  current_tier
-
+    milestone,
+    match_date AS milestone_date,
+    milestone_value
+FROM milestone_dates
+WHERE rn = 1
 ORDER BY
-  current_value DESC
-
+    name,
+    milestone;
 ")
 
 }
