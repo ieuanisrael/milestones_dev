@@ -29,7 +29,7 @@ build_cumulative_query <- function(
   
   filter_sql <- build_filter_clause(filters, player_id, definition) 
   
-  thresholds <- create_threshold_sql(thresholds_for(definition$display_name, series))
+  thresholds <- create_threshold_sql(thresholds_for(definition$display_name, filters$series))
   
   glue::glue("
 WITH innings_runs AS (
@@ -50,6 +50,8 @@ WITH innings_runs AS (
         ON m.match_id = pi.match_id
     JOIN [GA20260618].[Series] series
         ON m.series_id = series.series_id
+    JOIN [GA20260618].Seasons season
+        on m.season_id = season.season_id
     {filter_sql}
     GROUP BY
         p.player_id,
@@ -116,7 +118,7 @@ build_tiered_innings_query <- function(
   
   filter_sql <- build_filter_clause(filters, player_id, definition) 
   
-  thresholds <- create_threshold_sql(thresholds_for(definition$display_name, series))
+  thresholds <- create_threshold_sql(thresholds_for(definition$display_name, filters$series))
   
   glue::glue("
 WITH milestone_innings AS (
@@ -138,6 +140,8 @@ WITH milestone_innings AS (
         ON m.match_id = pi.match_id
     JOIN [GA20260618].[Series] series
         ON m.series_id = series.series_id
+    JOIN [GA20260618].Seasons season
+        on m.season_id = season.season_id
     {filter_sql}
 ),
 
@@ -203,7 +207,7 @@ build_tiered_match_query <- function(
   
   filter_sql <- build_filter_clause(filters, player_id, definition) 
   
-  thresholds <- create_threshold_sql(thresholds_for(definition$display_name, series))
+  thresholds <- create_threshold_sql(thresholds_for(definition$display_name, filters$series))
   
   glue::glue("
 WITH match_hauls AS (
@@ -225,6 +229,8 @@ WITH match_hauls AS (
         ON m.match_id = pi.match_id
     JOIN [GA20260618].[Series] series
         ON m.series_id = series.series_id
+    JOIN [GA20260618].Seasons season
+        on m.season_id = season.season_id
     {filter_sql}
     GROUP BY
         p.player_id,

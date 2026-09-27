@@ -222,12 +222,12 @@ email_html <- tagList(
       class = "hero", 
       tags$div(
         class = "hero-title",
-        glue("NSW Blues Men's Milestones")
+        glue("{vars$team_name} Milestones")
       ),
       
       tags$div(
         class = "hero-subtitle",
-        glue("{series_name} | {Sys.Date()} | Performance Analysis")
+        glue("{vars$series_name} | {Sys.Date()} | Performance Analysis")
       )
     ),
     
@@ -286,7 +286,7 @@ email_html <- tagList(
               )
             )
           ),
-          if("T20" %in% series_name) {
+          if("T20" %in% vars$series_name) {
             tags$td(
               width = "25%",
               div(
@@ -381,7 +381,7 @@ email_html <- tagList(
     
     # TOP 10 SECTION --------------------------
     
-    if("T20" %in% series_name) {
+    if("T20" %in% vars$series_name) {
       div(
         div( 
           class = "section",
@@ -438,6 +438,6 @@ email_html <- tagList(
 
 save_html(
   email_html,
-  file = "player_milestone_update.html"
+  file = glue("{prefix}/player_milestone_updates/{vars$file_name}_player_milestone_update.html")
 )
 
