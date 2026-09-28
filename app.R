@@ -12,7 +12,7 @@ library(odbc)
 library(DT)
 
 Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
-Sys.setenv("MILESTONES_USE_LUDIS" = 0) # uncomment for database
+Sys.setenv("MILESTONES_USE_LUDIS" = 1) # uncomment for database
 
 prefix <- ifelse(Sys.getenv("MILESTONES_USE_LUDIS") == 0, ".", "/srv/shiny-server")
 
