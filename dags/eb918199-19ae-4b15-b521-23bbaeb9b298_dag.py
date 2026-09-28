@@ -49,4 +49,4 @@ with dag:
         files="/home/airflow/dags/6049e734-a134-4218-939e-4b27416addc0/player_milestone_updates/T20M_player_milestone_update.html",
     )
 
-    bash_task
+    r_task >> send_email
