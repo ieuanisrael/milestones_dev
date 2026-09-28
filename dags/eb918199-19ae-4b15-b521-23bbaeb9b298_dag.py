@@ -40,7 +40,7 @@ with dag:
     # Running a python script
     # python_task = utils.LudisPyOperator(filename = 'example.py', image = 'ludis-py')
     
-    r_task = utils.LudisROperator(filename = 'run_email.R', image='ludis-r', installScript='install.sh' )
+    r_task = utils.LudisROperator(filename = 'run_email.r', image='ludis-r', installScript='install.sh' )
     
     send_email = EmailOperator(
         task_id='send_custom_email_task',
