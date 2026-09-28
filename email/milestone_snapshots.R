@@ -1,6 +1,7 @@
 library(glue)
 library(lubridate)
 library(dplyr)
+library(odbc)
 
 Sys.setenv("MILESTONES_USE_SAMPLE" = 0) # uncomment for database
 Sys.setenv("MILESTONES_USE_LUDIS" = 0)
