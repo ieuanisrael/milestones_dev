@@ -42,10 +42,11 @@ with dag:
     
     r_task = utils.LudisROperator(filename = 'run_email.r', image='ludis-r', installScript='install.sh' )
     
-    bash_task = BashOperator(
-        task_id='bash_task',
-        bash_command='echo "Hello, World!"',
-        dag=dag,
+    send_email = EmailOperator(
+        task_id='send_custom_email_task',
+        to=['ieuan.israel@cricketnsw.com.au'],
+        subject='Airflow Script Variable Report',
+        files="/home/airflow/dags/6049e734-a134-4218-939e-4b27416addc0/player_milestone_updates/T20M_player_milestone_update.html",
     )
 
     bash_task
