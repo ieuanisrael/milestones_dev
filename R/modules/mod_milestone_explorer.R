@@ -42,16 +42,17 @@ milestoneExplorerServer <- function(id, con, internal_con) {
     
     observeEvent(filters, {
       output$warningText <- renderUI({
+        
         min_year <- get_min_season_year(
           filters = list(series = filters()$series, venue = filters()$venue, team = filters()$team),
           conn = con
         )
-        if (!(stringr::str_detect(filters()$series, "T20"))) {
+        if (!(filters()$series %in% c('950002', '220008'))) {
           tags$div(
             tags$div(
             class = "alert alert-danger d-flex align-items-center",
             role = "alert",
-            style = "padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);",
+            style = "background-color: #fff2cc; padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);",
             
             # Message body
             tags$div(
@@ -60,7 +61,9 @@ milestoneExplorerServer <- function(id, con, internal_con) {
           ),
           
           tags$div(
-            style = "background-color: #00b0f0; padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);",
+            class = "alert alert-danger d-flex align-items-center",
+            role = "alert",
+            style = "background-color: #fff2cc; padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);",
             
             # Message body
             tags$div(
@@ -72,6 +75,8 @@ milestoneExplorerServer <- function(id, con, internal_con) {
         } else {
           tags$div(
             tags$div(
+              class = "alert alert-danger d-flex align-items-center",
+              role = "alert",
               style = "background-color:#fff2cc; padding: 12px 16px; border-radius: 6px; box-shadow: 0 2px 4px  rgba(0,0,0,0.05);",
               
               # Message body

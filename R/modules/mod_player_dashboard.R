@@ -195,8 +195,12 @@ playerDashboardServer <- function(id, con, internal_con) {
             Projected = round(projected, 0),
             `On track` = ifelse(season_achievable, "Yes", "No")
           ) %>%
-          datatable()
+          datatable(extensions = 'Scroller', options = list(deferRender = TRUE,
+                                                            scrollY = 500,
+                                                            scroller = TRUE,
+                                                            dom = 't'))
       },
+      
       options = list(
         pageLength = 8,
         scrollX = TRUE,
