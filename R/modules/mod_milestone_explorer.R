@@ -126,13 +126,23 @@ milestoneExplorerServer <- function(id, con, internal_con) {
       {
         req(filters()$series)
 
-        team_list <- data.frame(ams_id = '')
+        team_list <- data.frame(ams_id = '', color = '')
         
         if ( !is.null(internal_con) ) {
           
           query <- glue(
-            "SELECT 
-            [ams_id]
+          "SELECT 
+            [team_id],
+            [ams_id],
+            CASE WHEN [team_id] = 3 THEN '#00b0f0' 
+              WHEN [team_id] = 4 THEN '#00b0f0' 
+              WHEN [team_id] = 460001 THEN '#00b0f0' 
+              WHEN [team_id] = 1070054 THEN '#fe0180' 
+              WHEN [team_id] = 1070055 THEN '#b6d556' 
+              WHEN [team_id] = 2950010 THEN '#fe0180' 
+              WHEN [team_id] = 2950011 THEN '#b6d556' 
+              ELSE 'white'
+            END AS color
           FROM 
             [elite].[LISTS_contract_lists]
           WHERE
@@ -148,10 +158,15 @@ milestoneExplorerServer <- function(id, con, internal_con) {
         datatable(
           leaderboard_data(),
           style = "default",
+          extensions = 'Scroller',
           options = list(
             columnDefs = list(
               list(targets = 1, visible = FALSE, searchable = TRUE)
-            )
+            ),
+            deferRender = TRUE,
+            scrollY = 500,
+            scroller = TRUE,
+            dom = 't' 
           )
         ) %>%
           formatStyle(
@@ -159,7 +174,7 @@ milestoneExplorerServer <- function(id, con, internal_con) {
             target = 'row',
             backgroundColor = styleEqual(
               team_list$ams_id, # The exact names to look for
-              rep('#00b0f0', length(team_list$ams_id)),  # Highlights matches in light yellow
+              team_list$color,  # Highlights matches in light yellow
               default = '#ffffff'
             )
           )
